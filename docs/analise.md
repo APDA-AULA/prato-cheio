@@ -40,6 +40,21 @@ Direção: Aumento.
 Teste de dezembro: Existe um número que mostra que isso não aconteceu? Sim, se em dezembro a taxa de conclusão for inferior a 90 por cento.
 
 ## Regras de negócio
+ 
+1. Validade mínima para doação
+Origem: Inventada (criada pelo grupo para preencher lacuna do caso).
+Enunciado explícito e verificável: O sistema bloqueia o cadastro de itens cuja data de validade seja inferior a 24 horas a partir do horário atual.
+Como se verifica: Dois desenvolvedores diferentes tentam cadastrar um item com vencimento em 12 horas. Ambos devem constatar que o sistema exibe mensagem de erro e impede o registro.
+ 
+2. Atribuição automática de rotas
+Origem: Praticada na rotina atual da equipe.
+Enunciado explícito e verificável: O sistema vincula a rota de coleta ao motorista ativo que estiver geograficamente mais próximo do endereço do doador no momento da solicitação.
+Como se verifica: Dois desenvolvedores diferentes simulam solicitações com motoristas a distâncias distintas. Ambos devem observar que o sistema direciona o chamado para o motorista mais próximo.
+ 
+3. Validação de conformidade térmica
+Origem: Imposta (pelas normas da Vigilância Sanitária).
+Enunciado explícito e verificável: O sistema exige o preenchimento obrigatório do campo de temperatura do alimento antes de habilitar a finalização da coleta.
+Como se verifica: Dois desenvolvedores diferentes tentam concluir o registro de coleta deixando o campo de temperatura vazio. Ambos constatam que a operação não é finalizada.
 
 ## Histórias de usuário
 | # | História (Como… quero… para…) | INVEST: o que falha |
