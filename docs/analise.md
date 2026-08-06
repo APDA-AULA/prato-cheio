@@ -56,6 +56,24 @@ Origem: Imposta (pelas normas da Vigilância Sanitária).
 Enunciado explícito e verificável: O sistema exige o preenchimento obrigatório do campo de temperatura do alimento antes de habilitar a finalização da coleta.
 Como se verifica: Dois desenvolvedores diferentes tentam concluir o registro de coleta deixando o campo de temperatura vazio. Ambos constatam que a operação não é finalizada.
 
+## Conflitos de prioridade
+ 
+As duas falas em conflito:
+Marta: Eu preciso de agilidade máxima no cadastro para despachar os motoristas depressa.
+Fiscal da Vigilância Sanitária: Eu preciso de rigor absoluto e registro detalhado (foto e temperatura) de cada lote antes de qualquer liberação.
+ 
+O eixo do trade-off:
+Velocidade de operação versus rigor de conformidade regulatória.
+ 
+O que cada lado perde:
+A coordenação de operações perde tempo e agilidade no fluxo de atendimento. A fiscalização perde a garantia de rastreabilidade e segurança sanitária se o rigor for relaxado.
+ 
+O critério que decide:
+Na iteração 1, campo obrigatório é apenas o que a vigilância exige legalmente; ferramentas visuais para agilizar o trabalho da coordenação ficam para depois.
+ 
+Qual das três saídas foi usada:
+Decidir.
+
 ## Histórias de usuário
 | # | História (Como… quero… para…) | INVEST: o que falha |
 |---|---|---|
