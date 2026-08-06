@@ -18,9 +18,26 @@
 | Coordenador de Voluntários | Gestor da equipe de apoio operacional | Manter o engajamento e a escala de voluntários | Baixo | Deixar para depois e focar nas entrevistas com a coordenação principal |
 
 ## Objetivos de impacto
-1.
-2.
-3.
+ 
+Três objetivos de impacto, cada um com métrica, linha de base e direção.
+ 
+1. Tempo médio de coleta de alimentos
+Métrica: Tempo médio em minutos por rota de resgate.
+Linha de base: Hoje desconhecida, medir desde o primeiro dia do piloto.
+Direção: Redução.
+Teste de dezembro: Existe um número que mostra que isso não aconteceu? Sim, se em dezembro a média de tempo por rota não for inferior a 40 minutos, o objetivo falhou.
+ 
+2. Volume de alimentos resgatados
+Métrica: Quantidade total (em quilogramas) de alimentos salvos por semana.
+Linha de base: Hoje desconhecida, medir desde o primeiro dia do piloto.
+Direção: Aumento.
+Teste de dezembro: Existe um número que mostra que isso não aconteceu? Sim, se em dezembro o volume semanal acumulado for menor que 500 quilos.
+ 
+3. Taxa de conclusão de coletas agendadas
+Métrica: Porcentagem de rotas concluídas sem cancelamento por falhas operacionais.
+Linha de base: Hoje desconhecida, medir desde o primeiro dia do piloto.
+Direção: Aumento.
+Teste de dezembro: Existe um número que mostra que isso não aconteceu? Sim, se em dezembro a taxa de conclusão for inferior a 90 por cento.
 
 ## Regras de negócio
 
