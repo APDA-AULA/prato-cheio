@@ -10,6 +10,7 @@ Conecta doadores de alimentos excedentes a ONGs, antes que a comida se perca.
 - Gustavo José Paulo — @0gudu
 - Lucas Giovani Fruck — @LucasGiovaniFruck
 - Maria Eduarda Huida — @Madu-huida
+-  Murilo Calixto Nascimento - @MuriloCalixto
 
 ## Como rodar
 
