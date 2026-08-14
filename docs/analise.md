@@ -87,8 +87,19 @@ Decidir.
 | 7 | Como Motorista, quero um botão no endereço da coleta que abra as coordenadas no Google Maps, para não precisar digitar na rua e agilizar a viagem. | T |
 | 8 | Como Motorista, quero poder marcar um endereço como "doação cancelada", para retirar o item da minha lista do dia sem precisar ligar para a coordenação. | Falha em Independente → depende da modelagem do banco de dados da história 2 (status da doação); fatiar para usar um *mock* de status apenas na interface do motorista nesta iteração. |
 
-## Critérios de aceite
-**História X** — Dado … Quando … Então …
+**História Zero (★ 1)**
+* **Por que ela:** É o gatilho que inicia todo o fluxo do sistema e a única fatia que nos permite testar na prática a regra de negócio crítica de "Validade mínima para doação" (bloqueio de vencimentos menores que 24h).
+* **O que ficou FORA da fatia:** Cadastro em massa de itens (via Excel ou lotes), edição da doação após o envio, e integração de catálogo com o estoque do supermercado.
+* **Por quê:** O cadastro em massa e integrações escondem o risco de usabilidade; precisamos medir a linha de base primeiro para saber se o doador consegue e tem paciência de cadastrar um único item pelo seu celular de forma avulsa. A edição foi cortada pelo risco arquitetural de ter que tratar concorrência de dados (o motorista já ter aceitado uma viagem enquanto o doador edita o peso).
+
+## Uso de IA
+O que geramos com IA, o que verificamos e o que alteramos.
+
+* **História #2:**
+  * **O que ela gerou:** "Como Administrador, quero um sistema inteligente de roteamento com IA para distribuir doações aos motoristas."
+  * **O que mudamos e por quê:** Trocamos "Administrador" (papel de tela) por "Marta" (stakeholder real). Removemos o roteamento inteligente porque precisamos focar em agilidade básica primeiro.
+  * **Qual regra inventou:** A IA inventou que *o sistema faria o balanceamento automático da carga pelo peso do veículo*. Quem decide os critérios de balanceamento é a Marta (Coordenadora de Operações), e, no momento, ela fará a atribuição visualmente. Além disso, a IA ignorou totalmente a restrição de **orçamento próximo de zero**, sugerindo integrações caras de IA logo na iteração 1.
+
 
 ## Riscos
 | Risco | Probabilidade | Impacto | Mitigação |
@@ -101,6 +112,3 @@ Decidir.
 - **Alternativas:**
 - **Decisão e justificativa:**
 - **Riscos e limitações:**
-
-## Uso de IA
-O que geramos com IA, o que verificamos e o que alteramos.
