@@ -75,8 +75,17 @@ Qual das três saídas foi usada:
 Decidir.
 
 ## Histórias de usuário
+
 | # | História (Como… quero… para…) | INVEST: o que falha |
 |---|---|---|
+| ★ 1 | Como Doador, quero cadastrar os alimentos excedentes informando a validade, para aumentar o volume de alimentos resgatados antes do descarte. | V |
+| 2 | Como Marta (Coord. Operações), quero visualizar as doações pendentes no meu painel, para atribuí-las aos motoristas e reduzir o tempo médio de coleta. | Falha em Negociável → remover a obrigatoriedade de atualização "em tempo real" (WebSockets) e aceitar uma tabela estática atualizada por *refresh* da página. |
+| 3 | Como Motorista, quero registrar a foto e a temperatura do alimento no app, para garantir a conformidade com a Vigilância Sanitária e evitar interdição. | Falha em Estimável → spike de 2 h para descobrir como fazer o cache local da foto no navegador do celular quando não houver conexão de internet. |
+| 4 | Como Instituição Receptora, quero ser notificada do horário de chegada, para ter equipe pronta no descarregamento e aumentar a taxa de conclusão de coletas. | Falha em Pequena → remover disparo automático de SMS; a fatia entregará apenas um botão para a Coordenação abrir o WhatsApp com mensagem pré-preenchida. |
+| 5 | Como Vigilância Sanitária, quero exportar o registro semanal de temperaturas coletadas, para auditar a segurança alimentar e evitar o bloqueio da operação. | S |
+| 6 | Como Motorista, quero ver a minha rota de hoje em formato de lista de texto simples (ordem alfabética), para não me perder e reduzir o tempo de coleta. | I |
+| 7 | Como Motorista, quero um botão no endereço da coleta que abra as coordenadas no Google Maps, para não precisar digitar na rua e agilizar a viagem. | T |
+| 8 | Como Motorista, quero poder marcar um endereço como "doação cancelada", para retirar o item da minha lista do dia sem precisar ligar para a coordenação. | Falha em Independente → depende da modelagem do banco de dados da história 2 (status da doação); fatiar para usar um *mock* de status apenas na interface do motorista nesta iteração. |
 
 ## Critérios de aceite
 **História X** — Dado … Quando … Então …
