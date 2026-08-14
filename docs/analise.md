@@ -99,6 +99,16 @@ O que geramos com IA, o que verificamos e o que alteramos.
   * **O que ela gerou:** "Como Administrador, quero um sistema inteligente de roteamento com IA para distribuir doações aos motoristas."
   * **O que mudamos e por quê:** Trocamos "Administrador" (papel de tela) por "Marta" (stakeholder real). Removemos o roteamento inteligente porque precisamos focar em agilidade básica primeiro.
   * **Qual regra inventou:** A IA inventou que *o sistema faria o balanceamento automático da carga pelo peso do veículo*. Quem decide os critérios de balanceamento é a Marta (Coordenadora de Operações), e, no momento, ela fará a atribuição visualmente. Além disso, a IA ignorou totalmente a restrição de **orçamento próximo de zero**, sugerindo integrações caras de IA logo na iteração 1.
+  * 
+* **História #3:**
+  * **O que ela gerou:** "Como Motorista, quero acessar um mapa 3D com GPS nativo no aplicativo para registrar a coleta."
+  * **O que mudamos e por quê:** Removemos o mapa 3D e focamos no registro da foto e temperatura (que é a dor real de conformidade).
+  * **Qual regra inventou:** A IA não inventou regra aqui, mas cometeu seu erro mais caro: **esqueceu a restrição do celular e conexão instável**. Um mapa 3D pesado destruiria o uso do app pelos motoristas voluntários na rua com dados móveis limitados.
+
+* **História #4:**
+  * **O que ela gerou:** "Como Instituição Receptora, quero receber um email com o relatório nutricional e laudo completo da doação para assinar digitalmente."
+  * **O que mudamos e por quê:** Trocamos para uma notificação simples de horário de chegada (para ajudar no descarregamento). O relatório nutricional não tem impacto no nosso objetivo de resgatar o alimento a tempo.
+  * **Qual regra inventou:** A IA inventou que *é obrigatório um laudo nutricional para aceitar a doação*. Quem dita os dados exigidos (como temperatura) é a Vigilância Sanitária, e ela não exige quebra nutricional de calorias no ato do transporte de urgência de excedentes.
 
 
 ## Riscos
