@@ -114,4 +114,13 @@ describe('aceitar uma doação', () => {
     expect(res2.status).toBe(400);
     expect(res2.body.erro).toBeDefined();
   });
+
+  it('recusa aceitar uma doação inexistente', async () => {
+    const res = await request(app)
+      .post('/api/doacoes/9999/aceitar')
+      .send({ ong: 'ONG Qualquer' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toBeDefined();
+  });
 });
