@@ -1,24 +1,10 @@
-# Retrospectiva da Iteração N
+# Retrospectiva 1
 
-- **Data:** · **Grupo:**
+| O que decidimos | O que funcionou | O que mudaríamos | Próximos passos |
+|---|---|---|---|
+| Focar apenas na regra de negócio central (publicar/aceitar) ignorando segurança/telas bonitas na V1. | Usar o template reduziu o tempo de setup. A divisão do documento agilizou a entrega. | Teríamos começado a análise mais cedo para não acumular com o código na última hora. | Implementar validações reais de dados (ex: datas retroativas) e finalizar a interface visual. |
 
-## O que decidimos nesta iteração
-<!-- 2 a 3 decisões que tomamos, não tarefas que fizemos. -->
-
-## O que funcionou
-
-## O que mudaríamos
-
-## Próximos passos (para a próxima iteração)
-
-## Autoavaliação de contribuição
-Distribuam 100 pontos entre os integrantes conforme a contribuição desta iteração
-(inclui código, análise, documentação, revisão de PR). Cada integrante assina.
-
-| Integrante | Pontos | O que fez de mais relevante |
-|---|:--:|---|
-|  |  |  |
-|  |  |  |
-|  |  |  |
-
-**Total: 100**
+## Autoavaliação por pares
+* **Lucas Giovani Fruck:** 33 pontos (Focou no entendimento do negócio e documentação).
+* **Maria Eduarda Huida:** 34 pontos (Responsável pelo fatiamento das histórias, BDD e avaliação INVEST).
+* **Gustavo José Paulo:** 33 pontos (Responsável pela integração do CI, estruturação dos testes e base do repositório).
