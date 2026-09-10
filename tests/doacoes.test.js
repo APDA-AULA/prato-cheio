@@ -26,14 +26,14 @@ describe('a aplicação sobe', () => {
 // ---------------------------------------------------------------------------
 
 describe('publicar e listar doações', () => {
-  it.todo('mostra a doação publicada na lista de disponíveis');
-  it.todo('recusa doação sem os campos obrigatórios');
+  it.todo('1. recusa doação sem os campos obrigatórios');
+  it.todo('2. mostra a doação publicada na lista de disponíveis');
 });
 
 describe('aceitar uma doação', () => {
-  it.todo('marca a doação como aceita pela ONG');
-  it.todo('remove a doação da lista de disponíveis depois de aceita');
-  it.todo('recusa aceitar uma doação que já foi aceita por outra ONG');
+  it.todo('3. marca a doação como aceita pela ONG');
+  it.todo('4. remove a doação da lista de disponíveis depois de aceita');
+  it.todo('5. recusa aceitar uma doação que já foi aceita por outra ONG');
 });
 
 /* Exemplo de como transformar um critério de aceite em teste.
