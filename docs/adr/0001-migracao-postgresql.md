@@ -38,3 +38,11 @@ A implementação na `src/db.js` limitou a abstração a `query()` retornando `{
 - **O que da decisão antiga cai:** Nada cai. O uso de Docker continua.
 - **O que continua de pé:** Mantemos a decisão de usar o PostgreSQL via Docker (ADR 0001).
 - **Por quê:** Fazer dumps mensais num contentor PostgreSQL é um procedimento padronizado, seguro e nativo (usando `pg_dump`). A mudança de regra não exige a troca da tecnologia escolhida, apenas a criação de uma rotina extra de exportação.
+
+---
+
+## Revisão — 22 de Outubro de 2026 (Mudança de Contexto: Incidente do Piloto)
+- **O que mudou no contexto:** O piloto já possui doações reais cadastradas. Uma pessoa da equipe da Marta rodou os testes na máquina do piloto com a configuração apontando para o banco real, e a limpeza dos testes (`limparBanco()`) apagou todas as doações reais. A Marta exigiu que isso não possa acontecer de novo.
+- **O que da decisão antiga cai:** Nada cai. A migração para PostgreSQL continua planejada para a Unidade 3.
+- **O que continua de pé:** Mantemos o plano de PostgreSQL em contêiner via Docker (ADR 0001). Na Unidade 3, o isolamento será reforçado com contêineres e portas distintas para teste e produção, somado à trava de software descrita no ADR 0002.
+- **Por quê:** O PostgreSQL nativo permite criar bancos efêmeros ou usuários sem permissão de `DELETE` para testes em homologação. Aliado à trava lógica em `src/db.js`, eliminamos o risco de perda acidental sem retroceder na tecnologia escolhida.
