@@ -9,12 +9,11 @@
 import { createRequire } from 'node:module';
 const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite');
 
-const ARQUIVO = process.env.DATABASE_FILE || 'dados.sqlite';
-
 let db;
 
 export function conexao() {
-  if (!db) db = new DatabaseSync(ARQUIVO);
+  const arquivo = process.env.DATABASE_FILE || 'dados.sqlite';
+  if (!db) db = new DatabaseSync(arquivo);
   return db;
 }
 
@@ -46,8 +45,17 @@ export async function migrar() {
   `);
 }
 
+export function ehBancoDeTeste() {
+  if (process.env.NODE_ENV === 'production') return false;
+  const arquivo = process.env.DATABASE_FILE;
+  return arquivo === ':memory:' || (typeof arquivo === 'string' && arquivo.includes('test'));
+}
+
 /** Apaga todos os dados. Usado pelos testes. */
 export async function limparBanco() {
+  if (!ehBancoDeTeste()) {
+    throw new Error('Operação abortada: limparBanco() só pode ser executado em ambiente de teste e nunca no banco de dados real.');
+  }
   conexao().exec('DELETE FROM doacoes');
 }
 
