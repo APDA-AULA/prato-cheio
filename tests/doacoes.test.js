@@ -17,11 +17,11 @@ describe('a aplicação sobe', () => {
 
 // ---------------------------------------------------------------------------
 // Backlog de testes do walking skeleton.
-// Cada `it.todo` é um critério de aceite ainda não implementado — o CI não
+// Cada `it.todo` é um critério de aceite ainda não implementado - o CI não
 // falha por causa deles. À medida que o grupo implementa, troque `it.todo`
 // por um `it` de verdade (veja o exemplo comentado no fim do arquivo).
 //
-// Os testes abaixo usam o banco — que na Unidade 1 é SQLite em memória:
+// Os testes abaixo usam o banco - que na Unidade 1 é SQLite em memória:
 // nada a instalar, nada a subir.
 // ---------------------------------------------------------------------------
 
@@ -122,5 +122,35 @@ describe('aceitar uma doação', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.erro).toBeDefined();
+  });
+});
+
+describe('cancelar uma doação', () => {
+  beforeEach(async () => {
+    await migrar();
+    await limparBanco();
+  });
+
+  afterAll(async () => {
+    await encerrar();
+  });
+
+  it('dado que o doador publicou uma doação, quando ele a cancela, então ela não aparece na lista de disponíveis', async () => {
+    // Dado que o doador publicou uma doação pela API
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({ tipo: 'Pão Francês', quantidade: '30 unidades', validade: '2026-11-10' });
+    const id = criacao.body.id;
+
+    // Quando o doador cancela a doação publicada
+    const cancelamento = await request(app)
+      .post(`/api/doacoes/${id}/cancelar`);
+    expect(cancelamento.status).toBe(200);
+
+    // Então ela não aparece mais na lista de disponíveis
+    const lista = await request(app).get('/api/doacoes');
+    expect(lista.status).toBe(200);
+    expect(lista.body).toHaveLength(0);
+    expect(lista.body.find(d => d.id === id)).toBeUndefined();
   });
 });
