@@ -153,4 +153,108 @@ describe('cancelar uma doação', () => {
     expect(lista.body).toHaveLength(0);
     expect(lista.body.find(d => d.id === id)).toBeUndefined();
   });
+
+  // B1 - Testes novos derivados dos critérios de aceite da história
+  it('dado que uma doação está disponível, quando o doador a cancela, então o status muda para cancelada preservando os dados originais', async () => {
+    // Dado que uma doação de legumes está disponível no sistema pela API
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({ tipo: 'Legumes variados', quantidade: '8 kg', validade: '2026-11-12' });
+    const id = criacao.body.id;
+
+    // Quando o doador solicita o cancelamento dessa doação pela API
+    const res = await request(app)
+      .post(`/api/doacoes/${id}/cancelar`);
+
+    // Então a API devolve a doação com status cancelada e mantém tipo, quantidade e validade intactos
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(id);
+    expect(res.body.status).toBe('cancelada');
+    expect(res.body.tipo).toBe('Legumes variados');
+    expect(res.body.quantidade).toBe('8 kg');
+    expect(res.body.validade).toBe('2026-11-12');
+  });
+
+  it('dado que uma doação já foi aceita por uma ONG, quando o doador tenta cancelá-la, então o sistema recusa a operação com mensagem de erro', async () => {
+    // Dado que o doador publicou uma doação e a ONG Esperança já realizou o aceite pela API
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({ tipo: 'Marmitas', quantidade: '15 unidades', validade: '2026-11-15' });
+    const id = criacao.body.id;
+
+    await request(app)
+      .post(`/api/doacoes/${id}/aceitar`)
+      .send({ ong: 'ONG Esperança' });
+
+    // Quando o doador tenta cancelar a doação que já foi aceita
+    const res = await request(app)
+      .post(`/api/doacoes/${id}/cancelar`);
+
+    // Então o sistema recusa com status 400 e mensagem explícita protegendo o aceite da ONG
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toBe('Não é possível cancelar uma doação que já foi aceita por uma ONG.');
+  });
+
+  it('dado que uma doação foi cancelada pelo doador, quando uma ONG tenta aceitá-la, então o sistema recusa o aceite informando que foi cancelada', async () => {
+    // Dado que o doador publicou uma doação e em seguida realizou seu cancelamento pela API
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({ tipo: 'Frutas da estação', quantidade: '12 kg', validade: '2026-11-18' });
+    const id = criacao.body.id;
+
+    await request(app)
+      .post(`/api/doacoes/${id}/cancelar`);
+
+    // Quando uma ONG tenta aceitar essa doação já cancelada
+    const res = await request(app)
+      .post(`/api/doacoes/${id}/aceitar`)
+      .send({ ong: 'ONG Bom Prato' });
+
+    // Então o sistema recusa a operação com status 400 e informa que a doação foi cancelada
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toBe('Não é possível aceitar uma doação que foi cancelada.');
+  });
+
+  // B2 - Casos limite e de erro não previstos no critério original
+  it('recusa cancelar novamente uma doação que já foi cancelada anteriormente', async () => {
+    // Dado que uma doação publicada já foi cancelada uma primeira vez
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({ tipo: 'Leite', quantidade: '6 litros', validade: '2026-11-20' });
+    const id = criacao.body.id;
+
+    const primeiroCancelamento = await request(app)
+      .post(`/api/doacoes/${id}/cancelar`);
+    expect(primeiroCancelamento.status).toBe(200);
+
+    // Quando o doador repete a chamada de cancelamento para a mesma doação
+    const segundoCancelamento = await request(app)
+      .post(`/api/doacoes/${id}/cancelar`);
+
+    // Então o sistema recusa a repetição com status 400 e mensagem específica
+    expect(segundoCancelamento.status).toBe(400);
+    expect(segundoCancelamento.body.erro).toBe('Esta doação já foi cancelada anteriormente.');
+  });
+
+  it('recusa cancelar uma doação quando o identificador não existe no banco', async () => {
+    // Dado que não existe nenhuma doação cadastrada com o identificador 9999
+    // Quando a API recebe pedido de cancelamento para esse identificador inexistente
+    const res = await request(app)
+      .post('/api/doacoes/9999/cancelar');
+
+    // Então o sistema recusa com status 400 e mensagem indicando que a doação não foi encontrada
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toBe('Doação não encontrada.');
+  });
+
+  it('recusa cancelar uma doação quando o identificador informado na rota é inválido', async () => {
+    // Dado que o identificador enviado na rota não é um número inteiro positivo válido
+    // Quando a API recebe a requisição de cancelamento com identificador textual inválido
+    const res = await request(app)
+      .post('/api/doacoes/id-invalido/cancelar');
+
+    // Então o sistema recusa imediatamente com status 400 e mensagem de identificador inválido
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toBe('Identificador de doação inválido.');
+  });
 });
