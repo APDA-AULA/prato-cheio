@@ -42,7 +42,7 @@
         : '<li>Nenhuma doação disponível.</li>';
       for (const d of doacoes) {
         const li = document.createElement('li');
-        li.textContent = `${d.tipo} — ${d.quantidade} (até ${d.validade}) `;
+        li.textContent = `${d.tipo} - ${d.quantidade} até ${d.validade} `;
         const botao = document.createElement('button');
         botao.textContent = 'Aceitar';
         botao.onclick = async () => {
@@ -53,7 +53,16 @@
           });
           carregar();
         };
+        const botaoCancelar = document.createElement('button');
+        botaoCancelar.textContent = 'Cancelar doação';
+        botaoCancelar.onclick = async () => {
+          await fetch(`/api/doacoes/${d.id}/cancelar`, {
+            method: 'POST'
+          });
+          carregar();
+        };
         li.appendChild(botao);
+        li.appendChild(botaoCancelar);
         lista.appendChild(li);
       }
     }

@@ -1,4 +1,4 @@
-// Camada de dados do Prato Cheio — acesso ao banco.
+// Camada de dados do Prato Cheio - acesso ao banco.
 // TODO (grupo): implementar as quatro funções abaixo usando query().
 // A conexão e o schema já estão prontos em src/db.js.
 //
@@ -35,6 +35,15 @@ export async function aceitar(id, ong) {
   const { rows } = await query(
     "UPDATE doacoes SET status = 'aceita', ong = ? WHERE id = ? AND status = 'disponivel' RETURNING *",
     [ong, id]
+  );
+  return rows[0];
+}
+
+// marcar a doação disponível como cancelada pelo doador e devolver a linha atualizada.
+export async function cancelar(id) {
+  const { rows } = await query(
+    "UPDATE doacoes SET status = 'cancelada' WHERE id = ? AND status = 'disponivel' RETURNING *",
+    [id]
   );
   return rows[0];
 }
