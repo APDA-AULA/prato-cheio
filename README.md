@@ -14,24 +14,50 @@ Conecta doadores de alimentos excedentes a ONGs, antes que a comida se perca.
 
 ## Como rodar
 
-Requisito: **Node.js 22.13 ou superior**. Mais nada — o banco da Unidade 1 é SQLite, embutido no próprio Node.
+Requisitos:
+- **Node.js 22.13 ou superior**.
+- **PostgreSQL 16** (acessível via contêiner Docker local ou serviço gerenciado).
 
-> Esta é a **stack preferencial** da disciplina. Se o seu grupo optar por outra, registre o ADR de justificativa e garanta os mesmos compromissos: repositório público com CI verde, rota de saúde, testes por um comando, os três comandos documentados aqui no README e banco relacional migrado para PostgreSQL na Unidade 3.
+### 1. Subir o PostgreSQL (via Docker)
+
+Conforme decidido no [0001-migracao-postgresql.md](file:///c:/Users/maria.huida/Documents/prato-cheio/docs/adr/0001-migracao-postgresql.md), o PostgreSQL roda em contêiner local:
 
 ```bash
-npm install       # só na primeira vez
-npm run db:migrar # cria o schema (arquivo dados.sqlite)
-npm start         # sobe em http://localhost:3000
-npm test          # roda os testes
+docker run --name pratocheio-pg -e POSTGRES_USER=pratocheio -e POSTGRES_PASSWORD=pratocheio -e POSTGRES_DB=pratocheio -p 5432:5432 -d postgres:16
+```
+
+### 2. Configurar a variável de ambiente
+
+O produto conecta-se ao banco exclusivamente via `DATABASE_URL`. Configure no seu ambiente ou copie o arquivo [.env.example](file:///c:/Users/maria.huida/Documents/prato-cheio/.env.example) para `.env`:
+
+```bash
+# Exemplo de DATABASE_URL (nunca utilize senhas reais de produção em exemplos):
+export DATABASE_URL=postgres://pratocheio:pratocheio@localhost:5432/pratocheio
+
+# No Windows PowerShell:
+# $env:DATABASE_URL="postgres://pratocheio:pratocheio@localhost:5432/pratocheio"
+```
+
+### 3. Comandos a partir de um clone limpo
+
+```bash
+npm install       # instala dependências (só na primeira vez)
+npm run db:migrar # executa as migrações e cria o schema no PostgreSQL
+npm start         # sobe a aplicação em http://localhost:3000
+npm test          # executa a suíte de testes automatizados com Vitest
 npm run dev       # sobe recarregando a cada alteração
 ```
 
-Os testes usam SQLite **em memória**, então não sujam o banco de desenvolvimento.
+Os testes unitários e de integração contam com banco isolado e proteção contra limpeza acidental do banco de produção (`limparBanco()` com verificação estrita de ambiente de teste conforme [0002-protecao-banco-testes.md](file:///c:/Users/maria.huida/Documents/prato-cheio/docs/adr/0002-protecao-banco-testes.md)).
 
-> Ao rodar `npm test` o Node imprime `ExperimentalWarning: SQLite is an experimental feature`.
-> É esperado — o módulo embutido `node:sqlite` ainda é marcado como experimental. Não é erro e não reprova o CI.
+## Definição de pronto (DoD)
 
-> **Atenção:** não deixe o repositório dentro de uma pasta sincronizada (OneDrive, Google Drive, Dropbox) nem em disco de rede. O SQLite precisa de trava de arquivo e nesses lugares falha com `disk I/O error`. Clone em uma pasta local comum, por exemplo `~/dev/`.
+Uma história ou tarefa só é considerada pronta quando atende aos seguintes critérios:
+
+1. **Critérios de aceite implementados:** A funcionalidade cumpre todos os cenários da análise (conferido no diff de `src/` e [analise.md](file:///c:/Users/maria.huida/Documents/prato-cheio/docs/analise.md)).
+2. **Testes automatizados cobrindo caminho feliz e casos de borda:** Suíte de testes criada ou atualizada com asserções de valor e status HTTP (conferido em `tests/` e execução de `npm test`).
+3. **CI verde no GitHub Actions:** Pipeline de integração contínua executando sem erros e com testes passando (conferido na aba *Actions* do repositório).
+4. **Revisão de código por outro integrante:** Pull Request aberto com template preenchido, declaração da seção *Uso de IA* e aprovação formal de um par antes do merge na `main` (conferido na aba *Pull Requests*).
 
 ## O banco: SQLite agora, PostgreSQL depois
 
