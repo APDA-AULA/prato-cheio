@@ -5,73 +5,330 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Prato Cheio</title>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 0; padding: 1rem; max-width: 40rem; }
-    h1 { font-size: 1.3rem; }
-    fieldset { border: 1px solid #ccc; border-radius: .5rem; margin-bottom: 1rem; }
-    label { display: block; margin: .5rem 0 .2rem; font-size: .9rem; }
-    input, button { font-size: 1rem; padding: .6rem; width: 100%; box-sizing: border-box; }
-    button { margin-top: .8rem; cursor: pointer; }
-    li { border: 1px solid #ddd; border-radius: .5rem; padding: .6rem; margin-bottom: .5rem; list-style: none; }
-    ul { padding: 0; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0 auto;
+      padding: 1rem;
+      max-width: 36rem;
+      line-height: 1.4;
+      color: #1f2937;
+      background: #fafafa;
+    }
+    h1 { font-size: 1.35rem; margin: 0 0 .75rem; }
+    h2 { font-size: 1.1rem; margin: 1.25rem 0 .5rem; }
+    fieldset, .painel {
+      border: 1px solid #d1d5db;
+      border-radius: .5rem;
+      padding: .85rem;
+      margin: 0 0 1rem;
+      background: #fff;
+    }
+    legend { font-weight: 600; padding: 0 .35rem; }
+    label { display: block; margin: .55rem 0 .2rem; font-size: .9rem; font-weight: 500; }
+    label:first-of-type { margin-top: .2rem; }
+    input, button {
+      font-size: 1rem;
+      padding: .65rem;
+      width: 100%;
+      border-radius: .4rem;
+    }
+    input { border: 1px solid #9ca3af; background: #fff; }
+    button {
+      margin-top: .75rem;
+      cursor: pointer;
+      border: 1px solid #1d4ed8;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 600;
+    }
+    button.secundario {
+      background: #047857;
+      border-color: #065f46;
+    }
+    ul { padding: 0; margin: .5rem 0 0; }
+    li {
+      border: 1px solid #e5e7eb;
+      border-radius: .5rem;
+      padding: .7rem;
+      margin-bottom: .5rem;
+      list-style: none;
+      background: #fff;
+      word-break: break-word;
+    }
+    #alerta-erro {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #f87171;
+      border-radius: .5rem;
+      padding: .75rem;
+      margin-bottom: 1rem;
+      font-weight: 500;
+    }
+    #alerta-erro[hidden] { display: none; }
   </style>
 </head>
 <body>
   <h1>Prato Cheio</h1>
 
+  <div id="alerta-erro" role="alert" aria-live="assertive" hidden></div>
+
   <fieldset>
     <legend>Publicar doação</legend>
+    <label for="doador">Seu nome / estabelecimento</label>
+    <input id="doador" placeholder="Ex.: Padaria Pão Bom">
     <label for="tipo">Tipo de alimento</label>
     <input id="tipo" placeholder="Ex.: sopa, pão, frutas">
     <label for="quantidade">Quantidade</label>
     <input id="quantidade" placeholder="Ex.: 10 porções">
     <label for="validade">Validade / retirar até</label>
     <input id="validade" type="date">
-    <button id="publicar">Publicar</button>
+    <button id="publicar" type="button">Publicar</button>
   </fieldset>
 
-  <h2>Doações disponíveis</h2>
-  <ul id="lista"></ul>
+  <section class="painel" aria-labelledby="titulo-disponiveis">
+    <h2 id="titulo-disponiveis" style="margin-top: 0;">Doações disponíveis</h2>
+    <label for="ong-ativa">Identificação da ONG (para aceitar)</label>
+    <input id="ong-ativa" value="Casa Esperança" placeholder="Ex.: Casa Esperança">
+    <ul id="lista"></ul>
+  </section>
+
+  <section class="painel" aria-labelledby="titulo-aceitas">
+    <h2 id="titulo-aceitas" style="margin-top: 0;">Doações aceitas (aguardando coleta)</h2>
+    <ul id="lista-aceitas"></ul>
+  </section>
+
+  <section class="painel" aria-labelledby="titulo-minhas">
+    <h2 id="titulo-minhas" style="margin-top: 0;">Minhas doações</h2>
+    <label for="filtro-doador">Doador / estabelecimento</label>
+    <input id="filtro-doador" placeholder="Digite seu nome / estabelecimento">
+    <button id="consultar-minhas" class="secundario" type="button">Consultar minhas doações</button>
+    <ul id="lista-minhas"></ul>
+  </section>
 
   <script>
+    const CHAVE_DOADOR = 'pratocheio_doador';
+    const alertaErro = document.getElementById('alerta-erro');
+    const campoDoador = document.getElementById('doador');
+    const campoFiltroDoador = document.getElementById('filtro-doador');
+
+    function lerDoadorSalvo() {
+      try {
+        return localStorage.getItem(CHAVE_DOADOR) || '';
+      } catch {
+        return '';
+      }
+    }
+
+    function salvarDoador(nome) {
+      try {
+        localStorage.setItem(CHAVE_DOADOR, nome);
+      } catch {
+        // Ignora indisponibilidade de armazenamento local.
+      }
+    }
+
+    function exibirErro(mensagem) {
+      alertaErro.textContent = mensagem;
+      alertaErro.hidden = false;
+    }
+
+    function limparErro() {
+      alertaErro.textContent = '';
+      alertaErro.hidden = true;
+    }
+
+    function definirListaVazia(ul, mensagem) {
+      ul.replaceChildren();
+      const li = document.createElement('li');
+      li.textContent = mensagem;
+      ul.appendChild(li);
+    }
+
+    async function atualizarListas() {
+      await carregar();
+      await carregarAceitas();
+      if (campoFiltroDoador.value.trim()) {
+        await consultarMinhas(false);
+      }
+    }
+
     async function carregar() {
       const res = await fetch('/api/doacoes');
-      const doacoes = await res.json();
+      const dados = await res.json();
+      if (!res.ok) {
+        exibirErro(dados.erro || 'Erro ao carregar doações disponíveis.');
+        return;
+      }
+
       const lista = document.getElementById('lista');
-      lista.innerHTML = doacoes.length
-        ? ''
-        : '<li>Nenhuma doação disponível.</li>';
-      for (const d of doacoes) {
+      if (!dados.length) {
+        definirListaVazia(lista, 'Nenhuma doação disponível.');
+        return;
+      }
+      lista.replaceChildren();
+
+      for (const d of dados) {
         const li = document.createElement('li');
-        li.textContent = `${d.tipo} — ${d.quantidade} (até ${d.validade}) `;
+        const texto = document.createElement('div');
+        texto.textContent = `${d.tipo} — ${d.quantidade} (até ${d.validade}) · Doador: ${d.doador}`;
+        li.appendChild(texto);
+
         const botao = document.createElement('button');
+        botao.type = 'button';
         botao.textContent = 'Aceitar';
         botao.onclick = async () => {
-          await fetch(`/api/doacoes/${d.id}/aceitar`, {
+          const ong = document.getElementById('ong-ativa').value.trim() || 'Casa Esperança';
+          const resposta = await fetch(`/api/doacoes/${d.id}/aceitar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ong: 'Minha ONG' })
+            body: JSON.stringify({ ong })
           });
-          carregar();
+          const corpo = await resposta.json();
+          if (!resposta.ok) {
+            exibirErro(corpo.erro || 'Não foi possível aceitar a doação.');
+            await atualizarListas();
+            return;
+          }
+          limparErro();
+          await atualizarListas();
         };
         li.appendChild(botao);
         lista.appendChild(li);
       }
     }
 
+    async function carregarAceitas() {
+      const res = await fetch('/api/doacoes/aceitas');
+      const dados = await res.json();
+      if (!res.ok) {
+        exibirErro(dados.erro || 'Erro ao carregar doações aceitas.');
+        return;
+      }
+
+      const listaAceitas = document.getElementById('lista-aceitas');
+      if (!dados.length) {
+        definirListaVazia(listaAceitas, 'Nenhuma doação aguardando coleta.');
+        return;
+      }
+      listaAceitas.replaceChildren();
+
+      for (const d of dados) {
+        const li = document.createElement('li');
+        const texto = document.createElement('div');
+        texto.textContent = `${d.tipo} — ${d.quantidade} · ONG: ${d.ong}`;
+        li.appendChild(texto);
+
+        const rotulo = document.createElement('label');
+        rotulo.htmlFor = `voluntario-${d.id}`;
+        rotulo.textContent = 'Voluntário na coleta';
+        li.appendChild(rotulo);
+
+        const campoVoluntario = document.createElement('input');
+        campoVoluntario.id = `voluntario-${d.id}`;
+        campoVoluntario.placeholder = 'Primeiro nome do voluntário (ex.: Rui)';
+        li.appendChild(campoVoluntario);
+
+        const botao = document.createElement('button');
+        botao.type = 'button';
+        botao.textContent = 'Confirmar coleta';
+        botao.onclick = async () => {
+          const resposta = await fetch(`/api/doacoes/${d.id}/coletar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ voluntario: campoVoluntario.value })
+          });
+          const corpo = await resposta.json();
+          if (!resposta.ok) {
+            exibirErro(corpo.erro || 'Não foi possível confirmar a coleta.');
+            return;
+          }
+          limparErro();
+          await atualizarListas();
+        };
+        li.appendChild(botao);
+        listaAceitas.appendChild(li);
+      }
+    }
+
+    async function consultarMinhas(limparAlerta = true) {
+      const doador = campoFiltroDoador.value;
+      const res = await fetch(`/api/minhas-doacoes?doador=${encodeURIComponent(doador)}`);
+      const dados = await res.json();
+      if (!res.ok) {
+        exibirErro(dados.erro || 'Erro ao consultar minhas doações.');
+        return;
+      }
+
+      if (limparAlerta) {
+        limparErro();
+      }
+      const doadorLimpo = doador.trim();
+      if (doadorLimpo) {
+        salvarDoador(doadorLimpo);
+        if (!campoDoador.value.trim()) {
+          campoDoador.value = doadorLimpo;
+        }
+      }
+
+      const listaMinhas = document.getElementById('lista-minhas');
+      if (!dados.length) {
+        definirListaVazia(listaMinhas, 'Nenhuma doação encontrada para este doador.');
+        return;
+      }
+      listaMinhas.replaceChildren();
+
+      for (const d of dados) {
+        const li = document.createElement('li');
+        const situacaoTexto =
+          d.status === 'coletada' && d.voluntario
+            ? `coletada (voluntário: ${d.voluntario})`
+            : d.situacao;
+        li.textContent = `${d.tipo} — ${d.quantidade} (até ${d.validade}) · Situação: ${situacaoTexto}`;
+        listaMinhas.appendChild(li);
+      }
+    }
+
     document.getElementById('publicar').onclick = async () => {
-      await fetch('/api/doacoes', {
+      const doador = campoDoador.value;
+      const tipo = document.getElementById('tipo').value;
+      const quantidade = document.getElementById('quantidade').value;
+      const validade = document.getElementById('validade').value;
+
+      const res = await fetch('/api/doacoes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: document.getElementById('tipo').value,
-          quantidade: document.getElementById('quantidade').value,
-          validade: document.getElementById('validade').value
-        })
+        body: JSON.stringify({ doador, tipo, quantidade, validade })
       });
-      carregar();
+      const dados = await res.json();
+      if (!res.ok) {
+        exibirErro(dados.erro || 'Não foi possível publicar a doação.');
+        return;
+      }
+
+      limparErro();
+      const doadorLimpo = doador.trim();
+      salvarDoador(doadorLimpo);
+      campoDoador.value = doadorLimpo;
+      campoFiltroDoador.value = doadorLimpo;
+
+      document.getElementById('tipo').value = '';
+      document.getElementById('quantidade').value = '';
+      document.getElementById('validade').value = '';
+
+      await atualizarListas();
     };
 
+    document.getElementById('consultar-minhas').onclick = () => consultarMinhas(true);
+
+    const doadorInicial = lerDoadorSalvo();
+    campoDoador.value = doadorInicial;
+    campoFiltroDoador.value = doadorInicial;
     carregar();
+    carregarAceitas();
+    if (doadorInicial.trim()) {
+      consultarMinhas(false);
+    }
   </script>
 </body>
 </html>
