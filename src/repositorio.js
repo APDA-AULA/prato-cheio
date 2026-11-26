@@ -1,21 +1,20 @@
-// Camada de dados do Prato Cheio — acesso ao banco.
-// TODO (grupo): implementar as quatro funções abaixo usando query().
-// A conexão e o schema já estão prontos em src/db.js.
+// Camada de dados do Prato Cheio — acesso ao banco PostgreSQL.
+// A conexão e o schema estão definidos em src/db.js.
 //
-// Marcador de parâmetro é `?` (SQL parametrizado evita injeção):
-//   const { rows } = await query('SELECT * FROM doacoes WHERE id = ?', [id]);
+// Marcadores de parâmetro do PostgreSQL são `$1, $2, ...` (SQL parametrizado evita injeção):
+//   const { rows } = await query('SELECT * FROM doacoes WHERE id = $1', [id]);
 import { query } from './db.js';
 
-// inserir a doação e devolver a linha criada (dica: INSERT ... RETURNING *).
-export async function inserir({ tipo, quantidade, validade }) {
+// Inserir a doação e devolver a linha criada.
+export async function inserir({ doador, tipo, quantidade, validade }) {
   const { rows } = await query(
-    'INSERT INTO doacoes (tipo, quantidade, validade) VALUES (?, ?, ?) RETURNING *',
-    [tipo, quantidade, validade]
+    'INSERT INTO doacoes (doador, tipo, quantidade, validade) VALUES ($1, $2, $3, $4) RETURNING *',
+    [doador, tipo, quantidade, validade]
   );
   return rows[0];
 }
 
-// devolver apenas as doações com status 'disponivel'.
+// Devolver apenas as doações com status 'disponivel'.
 export async function listarDisponiveis() {
   const { rows } = await query(
     "SELECT * FROM doacoes WHERE status = 'disponivel' ORDER BY id ASC"
@@ -23,18 +22,35 @@ export async function listarDisponiveis() {
   return rows;
 }
 
-// buscar uma doação pelo id (devolver undefined se não existir).
+// Devolver todas as doações publicadas por um doador identificado.
+export async function listarPorDoador(doador) {
+  const { rows } = await query(
+    "SELECT * FROM doacoes WHERE doador = $1 AND doador <> 'Doador não informado' ORDER BY id ASC",
+    [doador]
+  );
+  return rows;
+}
+
+// Buscar uma doação pelo id (devolver undefined se não existir).
 export async function buscarPorId(id) {
-  const { rows } = await query('SELECT * FROM doacoes WHERE id = ?', [id]);
+  const { rows } = await query('SELECT * FROM doacoes WHERE id = $1', [id]);
   return rows[0];
 }
 
-// marcar a doação como aceita pela ONG e devolver a linha atualizada.
-// Pense: como garantir que duas ONGs não aceitem a mesma doação?
+// Marcar a doação como aceita pela ONG e devolver a linha atualizada.
 export async function aceitar(id, ong) {
   const { rows } = await query(
-    "UPDATE doacoes SET status = 'aceita', ong = ? WHERE id = ? AND status = 'disponivel' RETURNING *",
+    "UPDATE doacoes SET status = 'aceita', ong = $1 WHERE id = $2 AND status = 'disponivel' RETURNING *",
     [ong, id]
+  );
+  return rows[0];
+}
+
+// Confirmar a coleta da doação pelo voluntário registrando o horário e devolver a linha atualizada.
+export async function confirmarColeta(id, voluntario) {
+  const { rows } = await query(
+    "UPDATE doacoes SET status = 'coletada', voluntario = $1, coletada_em = NOW() WHERE id = $2 AND status = 'aceita' RETURNING *",
+    [voluntario, id]
   );
   return rows[0];
 }
