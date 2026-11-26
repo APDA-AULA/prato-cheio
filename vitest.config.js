@@ -1,9 +1,22 @@
+import { existsSync } from 'node:fs';
+
+if (existsSync('.env')) {
+  try {
+    process.loadEnvFile('.env');
+  } catch {
+    // Ignora erro caso .env local não possa ser carregado.
+  }
+}
+
 export default {
   test: {
-    // SQLite em memória: os testes não tocam o arquivo do banco de desenvolvimento.
+    fileParallelism: false,
     env: {
-      DATABASE_FILE: ':memory:',
-      NODE_ENV: 'test'
+      NODE_ENV: 'test',
+      DATABASE_URL:
+        process.env.DATABASE_URL_TEST ||
+        process.env.DATABASE_URL ||
+        'postgres://pratocheio:pratocheio@localhost:5432/pratocheio_test'
     }
   }
 };
