@@ -43,16 +43,17 @@ export async function query(sql, valores = []) {
 export async function migrar() {
   await query(`
     CREATE TABLE IF NOT EXISTS doacoes (
-      id          SERIAL PRIMARY KEY,
-      doador      TEXT NOT NULL DEFAULT 'Doador não informado',
-      tipo        TEXT NOT NULL,
-      quantidade  TEXT NOT NULL,
-      validade    TEXT NOT NULL,
-      status      TEXT NOT NULL DEFAULT 'disponivel',
-      ong         TEXT,
-      voluntario  TEXT,
-      coletada_em TIMESTAMPTZ,
-      criada_em   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      id               SERIAL PRIMARY KEY,
+      doador           TEXT NOT NULL DEFAULT 'Doador não informado',
+      tipo             TEXT NOT NULL,
+      quantidade       TEXT NOT NULL,
+      validade         TEXT NOT NULL,
+      status           TEXT NOT NULL DEFAULT 'disponivel',
+      ong              TEXT,
+      voluntario       TEXT,
+      coletada_em      TIMESTAMPTZ,
+      motivo_devolucao TEXT,
+      criada_em        TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
   await query(`
@@ -66,6 +67,10 @@ export async function migrar() {
   await query(`
     ALTER TABLE doacoes
     ADD COLUMN IF NOT EXISTS coletada_em TIMESTAMPTZ
+  `);
+  await query(`
+    ALTER TABLE doacoes
+    ADD COLUMN IF NOT EXISTS motivo_devolucao TEXT
   `);
 }
 
