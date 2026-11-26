@@ -22,6 +22,15 @@ export async function listarDisponiveis() {
   return rows;
 }
 
+// Devolver todas as doações publicadas por um doador identificado.
+export async function listarPorDoador(doador) {
+  const { rows } = await query(
+    "SELECT * FROM doacoes WHERE doador = $1 AND doador <> 'Doador não informado' ORDER BY id ASC",
+    [doador]
+  );
+  return rows;
+}
+
 // Buscar uma doação pelo id (devolver undefined se não existir).
 export async function buscarPorId(id) {
   const { rows } = await query('SELECT * FROM doacoes WHERE id = $1', [id]);
