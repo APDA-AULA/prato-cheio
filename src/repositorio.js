@@ -22,6 +22,14 @@ export async function listarDisponiveis() {
   return rows;
 }
 
+// Devolver apenas as doações com status 'aceita' aguardando coleta.
+export async function listarAceitas() {
+  const { rows } = await query(
+    "SELECT * FROM doacoes WHERE status = 'aceita' ORDER BY id ASC"
+  );
+  return rows;
+}
+
 // Devolver todas as doações publicadas por um doador identificado.
 export async function listarPorDoador(doador) {
   const { rows } = await query(
