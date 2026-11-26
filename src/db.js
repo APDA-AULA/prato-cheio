@@ -44,6 +44,7 @@ export async function migrar() {
   await query(`
     CREATE TABLE IF NOT EXISTS doacoes (
       id          SERIAL PRIMARY KEY,
+      doador      TEXT NOT NULL DEFAULT 'Doador não informado',
       tipo        TEXT NOT NULL,
       quantidade  TEXT NOT NULL,
       validade    TEXT NOT NULL,
@@ -51,6 +52,10 @@ export async function migrar() {
       ong         TEXT,
       criada_em   TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `);
+  await query(`
+    ALTER TABLE doacoes
+    ADD COLUMN IF NOT EXISTS doador TEXT NOT NULL DEFAULT 'Doador não informado'
   `);
 }
 

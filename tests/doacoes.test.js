@@ -16,23 +16,13 @@ describe('a aplicação sobe', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Backlog de testes do walking skeleton.
-// Cada `it.todo` é um critério de aceite ainda não implementado — o CI não
-// falha por causa deles. À medida que o grupo implementa, troque `it.todo`
-// por um `it` de verdade (veja o exemplo comentado no fim do arquivo).
-//
-// Os testes abaixo usam o banco — que na Unidade 1 é SQLite em memória:
-// nada a instalar, nada a subir.
+// Testes de integração da API sobre PostgreSQL.
 // ---------------------------------------------------------------------------
 
 describe('publicar e listar doações', () => {
   beforeEach(async () => {
     await migrar();
     await limparBanco();
-  });
-
-  afterAll(async () => {
-    await encerrar();
   });
 
   it('1. recusa doação sem os campos obrigatórios', async () => {
@@ -47,11 +37,17 @@ describe('publicar e listar doações', () => {
   it('2. mostra a doação publicada na lista de disponíveis', async () => {
     await request(app)
       .post('/api/doacoes')
-      .send({ tipo: 'Sopa', quantidade: '10 porções', validade: '2026-08-01' });
+      .send({
+        doador: 'Restaurante Bom Prato',
+        tipo: 'Sopa',
+        quantidade: '10 porções',
+        validade: '2026-08-01'
+      });
 
     const res = await request(app).get('/api/doacoes');
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
+    expect(res.body[0].doador).toBe('Restaurante Bom Prato');
     expect(res.body[0].tipo).toBe('Sopa');
     expect(res.body[0].status).toBe('disponivel');
   });
@@ -63,14 +59,15 @@ describe('aceitar uma doação', () => {
     await limparBanco();
   });
 
-  afterAll(async () => {
-    await encerrar();
-  });
-
   it('3. marca a doação como aceita pela ONG', async () => {
     const criacao = await request(app)
       .post('/api/doacoes')
-      .send({ tipo: 'Bolo', quantidade: '2 unidades', validade: '2026-08-02' });
+      .send({
+        doador: 'Restaurante Bom Prato',
+        tipo: 'Bolo',
+        quantidade: '2 unidades',
+        validade: '2026-08-02'
+      });
     const id = criacao.body.id;
 
     const res = await request(app)
@@ -85,7 +82,12 @@ describe('aceitar uma doação', () => {
   it('4. remove a doação da lista de disponíveis depois de aceita', async () => {
     const criacao = await request(app)
       .post('/api/doacoes')
-      .send({ tipo: 'Arroz', quantidade: '5 kg', validade: '2026-08-03' });
+      .send({
+        doador: 'Restaurante Bom Prato',
+        tipo: 'Arroz',
+        quantidade: '5 kg',
+        validade: '2026-08-03'
+      });
     const id = criacao.body.id;
 
     await request(app)
@@ -100,7 +102,12 @@ describe('aceitar uma doação', () => {
   it('5. recusa aceitar uma doação que já foi aceita por outra ONG', async () => {
     const criacao = await request(app)
       .post('/api/doacoes')
-      .send({ tipo: 'Bolo', quantidade: '1 bolo', validade: '2026-08-04' });
+      .send({
+        doador: 'Restaurante Bom Prato',
+        tipo: 'Bolo',
+        quantidade: '1 bolo',
+        validade: '2026-08-04'
+      });
     const id = criacao.body.id;
 
     const res1 = await request(app)
@@ -123,4 +130,41 @@ describe('aceitar uma doação', () => {
     expect(res.status).toBe(400);
     expect(res.body.erro).toBeDefined();
   });
+});
+
+describe('H1 — o doador acompanha as suas doações', () => {
+  beforeEach(async () => {
+    await migrar();
+    await limparBanco();
+  });
+
+  it('H1 CA3: recusa publicação quando o doador não é informado e não grava nada', async () => {
+    const res = await request(app)
+      .post('/api/doacoes')
+      .send({ tipo: 'Pão', quantidade: '20 unidades', validade: '2026-12-10' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toBe('O nome do doador é obrigatório.');
+
+    const lista = await request(app).get('/api/doacoes');
+    expect(lista.status).toBe(200);
+    expect(lista.body).toEqual([]);
+  });
+
+  it('H1 limite: recusa doador preenchido apenas com espaços em branco', async () => {
+    const res = await request(app)
+      .post('/api/doacoes')
+      .send({ doador: '   ', tipo: 'Pão', quantidade: '20 unidades', validade: '2026-12-10' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toBe('O nome do doador é obrigatório.');
+
+    const lista = await request(app).get('/api/doacoes');
+    expect(lista.status).toBe(200);
+    expect(lista.body).toEqual([]);
+  });
+});
+
+afterAll(async () => {
+  await encerrar();
 });
