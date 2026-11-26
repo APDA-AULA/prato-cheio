@@ -2,29 +2,53 @@
 // Camada de domínio desacoplada do banco e do protocolo HTTP.
 import * as repo from './repositorio.js';
 
+const TRANSICOES_PERMITIDAS = Object.freeze({
+  disponivel: ['aceita'],
+  aceita: ['coletada', 'disponivel'],
+  coletada: []
+});
+
+function exigirTexto(valor, mensagemErro) {
+  if (!valor || !String(valor).trim()) {
+    throw new Error(mensagemErro);
+  }
+  return String(valor).trim();
+}
+
+async function buscarEValidarTransicao(id, destino, mensagensErro = {}) {
+  const doacao = await repo.buscarPorId(id);
+  if (!doacao) {
+    throw new Error('Doação não encontrada.');
+  }
+
+  if (!TRANSICOES_PERMITIDAS[doacao.status]?.includes(destino)) {
+    throw new Error(
+      mensagensErro[doacao.status] ||
+        mensagensErro.padrao ||
+        `Transição inválida de '${doacao.status}' para '${destino}'.`
+    );
+  }
+
+  return doacao;
+}
+
 // História zero e H1 — "um doador publica uma doação".
 // Critérios: tipo, quantidade, validade e identificação do doador são obrigatórios.
 export async function criarDoacao({ doador, tipo, quantidade, validade } = {}) {
-  if (
-    !tipo ||
-    !quantidade ||
-    !validade ||
-    !String(tipo).trim() ||
-    !String(quantidade).trim() ||
-    !String(validade).trim()
-  ) {
-    throw new Error('Tipo, quantidade e validade são obrigatórios.');
-  }
+  const tipoLimpo = exigirTexto(tipo, 'Tipo, quantidade e validade são obrigatórios.');
+  const quantidadeLimpa = exigirTexto(quantidade, 'Tipo, quantidade e validade são obrigatórios.');
+  const validadeLimpa = exigirTexto(validade, 'Tipo, quantidade e validade são obrigatórios.');
+  const doadorLimpo = exigirTexto(doador, 'O nome do doador é obrigatório.');
 
-  if (!doador || !String(doador).trim() || String(doador).trim() === 'Doador não informado') {
+  if (doadorLimpo === 'Doador não informado') {
     throw new Error('O nome do doador é obrigatório.');
   }
 
   return await repo.inserir({
-    doador: String(doador).trim(),
-    tipo: String(tipo).trim(),
-    quantidade: String(quantidade).trim(),
-    validade: String(validade).trim()
+    doador: doadorLimpo,
+    tipo: tipoLimpo,
+    quantidade: quantidadeLimpa,
+    validade: validadeLimpa
   });
 }
 
@@ -40,11 +64,7 @@ export async function listarAceitas() {
 
 // H1 — "o doador acompanha as suas doações".
 export async function listarPorDoador(doador) {
-  if (!doador || !String(doador).trim()) {
-    throw new Error('Informe o nome do doador para consultar.');
-  }
-
-  const nomeDoador = String(doador).trim();
+  const nomeDoador = exigirTexto(doador, 'Informe o nome do doador para consultar.');
   if (nomeDoador === 'Doador não informado') {
     return [];
   }
@@ -59,15 +79,12 @@ export async function listarPorDoador(doador) {
 // História zero — "uma ONG aceita uma doação".
 // Regra do caso: uma doação aceita não fica disponível para outra ONG.
 export async function aceitar(id, ong = 'ONG') {
-  const doacao = await repo.buscarPorId(id);
-  if (!doacao) {
-    throw new Error('Doação não encontrada.');
-  }
-  if (doacao.status !== 'disponivel') {
-    throw new Error('Doação já foi aceita por outra ONG.');
-  }
+  await buscarEValidarTransicao(id, 'aceita', {
+    padrao: 'Doação já foi aceita por outra ONG.'
+  });
+  const ongLimpa = exigirTexto(ong, 'O nome da ONG é obrigatório.');
 
-  const atualizada = await repo.aceitar(id, ong);
+  const atualizada = await repo.aceitar(id, ongLimpa);
   if (!atualizada) {
     throw new Error('Não foi possível aceitar a doação.');
   }
@@ -77,21 +94,13 @@ export async function aceitar(id, ong = 'ONG') {
 
 // H2 — "o voluntário confirma a coleta".
 export async function confirmarColeta(id, voluntario) {
-  const doacao = await repo.buscarPorId(id);
-  if (!doacao) {
-    throw new Error('Doação não encontrada.');
-  }
-  if (doacao.status === 'coletada') {
-    throw new Error('Doação já foi coletada.');
-  }
-  if (doacao.status !== 'aceita') {
-    throw new Error('Só é possível confirmar a coleta de uma doação aceita.');
-  }
-  if (!voluntario || !String(voluntario).trim()) {
-    throw new Error('O nome do voluntário é obrigatório.');
-  }
+  await buscarEValidarTransicao(id, 'coletada', {
+    coletada: 'Doação já foi coletada.',
+    padrao: 'Só é possível confirmar a coleta de uma doação aceita.'
+  });
+  const voluntarioLimpo = exigirTexto(voluntario, 'O nome do voluntário é obrigatório.');
 
-  const atualizada = await repo.confirmarColeta(id, String(voluntario).trim());
+  const atualizada = await repo.confirmarColeta(id, voluntarioLimpo);
   if (!atualizada) {
     throw new Error('Não foi possível confirmar a coleta.');
   }
@@ -101,24 +110,17 @@ export async function confirmarColeta(id, voluntario) {
 
 // H3 — "a ONG devolve uma doação aceita".
 export async function devolverDoacao(id, { ong, motivo } = {}) {
-  const doacao = await repo.buscarPorId(id);
-  if (!doacao) {
-    throw new Error('Doação não encontrada.');
-  }
-  if (doacao.status === 'coletada') {
-    throw new Error('Não é possível devolver uma doação que já foi coletada.');
-  }
-  if (doacao.status !== 'aceita') {
-    throw new Error('Só é possível devolver uma doação aceita.');
-  }
-  if (!ong || String(ong).trim() !== doacao.ong) {
+  const doacao = await buscarEValidarTransicao(id, 'disponivel', {
+    coletada: 'Não é possível devolver uma doação que já foi coletada.',
+    padrao: 'Só é possível devolver uma doação aceita.'
+  });
+  const ongInformada = exigirTexto(ong, 'Apenas a ONG que aceitou a doação pode devolvê-la.');
+  if (ongInformada !== doacao.ong) {
     throw new Error('Apenas a ONG que aceitou a doação pode devolvê-la.');
   }
-  if (!motivo || !String(motivo).trim()) {
-    throw new Error('O motivo da devolução é obrigatório.');
-  }
+  const motivoLimpo = exigirTexto(motivo, 'O motivo da devolução é obrigatório.');
 
-  const atualizada = await repo.devolver(id, String(ong).trim(), String(motivo).trim());
+  const atualizada = await repo.devolver(id, ongInformada, motivoLimpo);
   if (!atualizada) {
     throw new Error('Não foi possível devolver a doação.');
   }

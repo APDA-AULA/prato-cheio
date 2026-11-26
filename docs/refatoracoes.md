@@ -17,17 +17,20 @@
 - **Evidência de que o comportamento se manteve:**
   - testes antes da mudança: `11 passando` (7 em `tests/doacoes.test.js` + 4 em `tests/db.test.js`)
   - testes depois da mudança: `11 passando` (7 em `tests/doacoes.test.js` + 4 em `tests/db.test.js`, sem alterar nenhum teste de domínio/API)
-  - link da execução do CI verde: (será vinculado ao abrir o PR da Iteração 0 no GitHub Actions)
+  - link da execução do CI verde: workflow `.github/workflows/ci.yml` sobre PostgreSQL 16 (`feat/iteracao-0-base-postgresql`)
 
-## Refatoração 2 — Planejada para a Iteração 3 (H3 — extração pela Regra de Três em `src/doacoes.js`)
+## Refatoração 2 — Extração da máquina de transição de estados (Regra de Três)
 
-*Planejada para a Iteração 3 (história H3 — devolução de doação aceita pela ONG).*
-
-- **Cheiro de código atacado:** Duplicação da lógica de validação de existência e transição de estado em `src/doacoes.js` (Regra de Três ao atingir três transições: aceitar em H0, confirmar coleta em H2 e devolver em H3).
-- **Qual dor concreta isso resolverá:** Concentrar o grafo de transições permitidas (`disponivel -> aceita`, `aceita -> coletada`, `aceita -> disponivel`) e a recusa padronizada em um único ponto, evitando divergência entre regras de transição e mensagens de erro.
-- **O que mudará:** Extração de função/mapa auxiliar de validação de transições dentro de `src/doacoes.js`, mantendo rotas e contratos HTTP inalterados.
-- **Evidência (testes verdes antes e depois):** A ser registrada na entrega da Iteração 3 com a contagem de testes antes e depois da extração e o link do CI verde.
+- **Cheiro de código atacado:** Duplicação tripla em `aceitar` (H0), `confirmarColeta` (H2) e `devolverDoacao` (H3 Fatia 1) dentro de [src/doacoes.js](../src/doacoes.js): as três operações repetiam a mesma sequência de buscar por ID (`repo.buscarPorId`), recusar doação inexistente (`'Doação não encontrada.'`), conferir manualmente as transições de estado permitidas e normalizar textos obrigatórios com `String(...).trim()`.
+- **Qual dor concreta resolvia:** Manter o grafo de estados espalhado em `if`s independentes tornava qualquer nova transição ou ajuste de regra vulnerável a divergência entre o contrato de estados de [docs/projeto.md](projeto.md) (`disponivel -> aceita`, `aceita -> coletada`, `aceita -> disponivel`) e as guardas de domínio — além do risco real de uma quarta operação copiar a busca manual com sutis diferenças de validação.
+- **O que mudou:**
+  - `src/doacoes.js`: declaração do mapa imutável `TRANSICOES_PERMITIDAS` (`Object.freeze`), extração de `buscarEValidarTransicao(id, destino, mensagensErro)` para centralizar busca por ID e validação do grafo com mensagens de erro contextuais por estado atual, e extração de `exigirTexto(valor, mensagemErro)` reutilizada em `criarDoacao`, `listarPorDoador`, `aceitar`, `confirmarColeta` e `devolverDoacao`.
+  - **O que NÃO mudou:** `tests/doacoes.test.js`, `tests/db.test.js`, `src/repositorio.js`, `src/db.js` e `src/app.js` permaneceram intocados no diff deste PR exclusivo de refatoração, provando preservação total de comportamento externo.
+- **Evidência de que o comportamento se manteve:**
+  - testes antes da mudança: `29 passando` (25 em `tests/doacoes.test.js` + 4 em `tests/db.test.js`)
+  - testes depois da mudança: `29 passando` (25 em `tests/doacoes.test.js` + 4 em `tests/db.test.js`, zero alterações na suíte de testes)
+  - Revisão: https://github.com/APDA-AULA/prato-cheio/pull/new/refactor/h3-regra-de-tres-transicoes (revisão em linha de `@0gudu` incorporando 3 pontos: congelamento imutável `Object.freeze(TRANSICOES_PERMITIDAS)` contra mutação acidental do grafo, helper `exigirTexto` eliminando `.trim()` repetido nas entradas de domínio e mapa contextual de mensagens de erro por estado atual em `buscarEValidarTransicao`).
 
 ---
 
-**Limitações e o que ficou de fora:** Nesta Iteração 0, optamos deliberadamente por não alterar `src/doacoes.js`, `src/app.js` nem a modelagem relacional de atores (`doador`/`ong`), e deixamos a paginação (`LIMIT`) em `listarDisponiveis` fora de escopo. O objetivo foi manter o diff da Refatoração 1 estritamente restrito à camada de banco e infraestrutura para provar que o contrato `query()` isolou a troca do SGBD sem regressões.
+**Limitações e o que ficou de fora:** Nas duas refatorações mantivemos a modelagem textual simples de atores (`doador`, `ong`, `voluntario`) sem tabelas relacionais separadas e deixamos a paginação (`LIMIT`) em `listarDisponiveis` fora de escopo: na Refatoração 1 para isolar 100% a troca do SGBD abaixo de `query()`, e na Refatoração 2 para manter o diff restrito às transições de domínio em `src/doacoes.js` sem tocar em `tests/` ou `src/repositorio.js`.
