@@ -69,3 +69,27 @@ export async function aceitar(id, ong = 'ONG') {
 
   return atualizada;
 }
+
+// H2 — "o voluntário confirma a coleta".
+export async function confirmarColeta(id, voluntario) {
+  const doacao = await repo.buscarPorId(id);
+  if (!doacao) {
+    throw new Error('Doação não encontrada.');
+  }
+  if (doacao.status === 'coletada') {
+    throw new Error('Doação já foi coletada.');
+  }
+  if (doacao.status !== 'aceita') {
+    throw new Error('Só é possível confirmar a coleta de uma doação aceita.');
+  }
+  if (!voluntario || !String(voluntario).trim()) {
+    throw new Error('O nome do voluntário é obrigatório.');
+  }
+
+  const atualizada = await repo.confirmarColeta(id, String(voluntario).trim());
+  if (!atualizada) {
+    throw new Error('Não foi possível confirmar a coleta.');
+  }
+
+  return atualizada;
+}
