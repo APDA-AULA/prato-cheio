@@ -497,6 +497,241 @@ describe('H2 — o voluntário confirma a coleta', () => {
   });
 });
 
+describe('H3 — a ONG devolve uma doação aceita', () => {
+  beforeEach(async () => {
+    await migrar();
+    await limparBanco();
+  });
+
+  it('H3 CA1: devolve doação aceita para a lista de disponíveis sem ONG e registra o motivo', async () => {
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Pão Francês',
+        quantidade: '25 unidades',
+        validade: '2026-12-25'
+      });
+    expect(criacao.status).toBe(201);
+    const id = criacao.body.id;
+
+    const aceite = await request(app)
+      .post(`/api/doacoes/${id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+    expect(aceite.status).toBe(200);
+
+    const devolucao = await request(app)
+      .post(`/api/doacoes/${id}/devolver`)
+      .send({ ong: 'Casa Esperança', motivo: 'sem voluntário hoje' });
+
+    expect(devolucao.status).toBe(200);
+    expect(devolucao.body).toMatchObject({
+      id,
+      status: 'disponivel',
+      ong: null,
+      motivo_devolucao: 'sem voluntário hoje'
+    });
+
+    const disponiveis = await request(app).get('/api/doacoes');
+    expect(disponiveis.status).toBe(200);
+    expect(disponiveis.body).toHaveLength(1);
+    expect(disponiveis.body[0]).toMatchObject({
+      id,
+      doador: 'Padaria Pão Bom',
+      tipo: 'Pão Francês',
+      status: 'disponivel',
+      ong: null,
+      motivo_devolucao: 'sem voluntário hoje'
+    });
+
+    const aceitas = await request(app).get('/api/doacoes/aceitas');
+    expect(aceitas.status).toBe(200);
+    expect(aceitas.body).toEqual([]);
+  });
+
+  it('H3 CA2: recusa devolver uma doação que já foi coletada', async () => {
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Sopa de Legumes',
+        quantidade: '15 porções',
+        validade: '2026-12-25'
+      });
+    const id = criacao.body.id;
+
+    await request(app)
+      .post(`/api/doacoes/${id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+
+    const coleta = await request(app)
+      .post(`/api/doacoes/${id}/coletar`)
+      .send({ voluntario: 'Rui' });
+    expect(coleta.status).toBe(200);
+
+    const devolucao = await request(app)
+      .post(`/api/doacoes/${id}/devolver`)
+      .send({ ong: 'Casa Esperança', motivo: 'sem voluntário hoje' });
+
+    expect(devolucao.status).toBe(400);
+    expect(devolucao.body.erro).toBe('Não é possível devolver uma doação que já foi coletada.');
+
+    const consulta = await request(app)
+      .get('/api/minhas-doacoes?doador=Padaria%20P%C3%A3o%20Bom');
+    expect(consulta.status).toBe(200);
+    expect(consulta.body[0]).toMatchObject({
+      id,
+      status: 'coletada',
+      ong: 'Casa Esperança',
+      voluntario: 'Rui'
+    });
+
+    const disponiveis = await request(app).get('/api/doacoes');
+    expect(disponiveis.body).toEqual([]);
+  });
+
+  it('H3 CA3: recusa devolução por outra ONG e mantém a doação aceita pela ONG original', async () => {
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Marmitas',
+        quantidade: '12 unidades',
+        validade: '2026-12-26'
+      });
+    const id = criacao.body.id;
+
+    await request(app)
+      .post(`/api/doacoes/${id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+
+    const devolucao = await request(app)
+      .post(`/api/doacoes/${id}/devolver`)
+      .send({ ong: 'Outra ONG', motivo: 'sem transporte' });
+
+    expect(devolucao.status).toBe(400);
+    expect(devolucao.body.erro).toBe('Apenas a ONG que aceitou a doação pode devolvê-la.');
+
+    const aceitas = await request(app).get('/api/doacoes/aceitas');
+    expect(aceitas.status).toBe(200);
+    expect(aceitas.body).toHaveLength(1);
+    expect(aceitas.body[0]).toMatchObject({
+      id,
+      status: 'aceita',
+      ong: 'Casa Esperança'
+    });
+
+    const disponiveis = await request(app).get('/api/doacoes');
+    expect(disponiveis.body).toEqual([]);
+  });
+
+  it('H3 limite: recusa devolução sem informar o motivo', async () => {
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Frutas',
+        quantidade: '8 kg',
+        validade: '2026-12-26'
+      });
+    const id = criacao.body.id;
+
+    await request(app)
+      .post(`/api/doacoes/${id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+
+    const semMotivo = await request(app)
+      .post(`/api/doacoes/${id}/devolver`)
+      .send({ ong: 'Casa Esperança' });
+    expect(semMotivo.status).toBe(400);
+    expect(semMotivo.body.erro).toBe('O motivo da devolução é obrigatório.');
+
+    const motivoEmBranco = await request(app)
+      .post(`/api/doacoes/${id}/devolver`)
+      .send({ ong: 'Casa Esperança', motivo: '   ' });
+    expect(motivoEmBranco.status).toBe(400);
+    expect(motivoEmBranco.body.erro).toBe('O motivo da devolução é obrigatório.');
+
+    const aceitas = await request(app).get('/api/doacoes/aceitas');
+    expect(aceitas.body).toHaveLength(1);
+    expect(aceitas.body[0]).toMatchObject({
+      id,
+      status: 'aceita',
+      ong: 'Casa Esperança'
+    });
+  });
+
+  it('H3 limite: permite que uma doação devolvida seja aceita novamente', async () => {
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Bolo de Cenoura',
+        quantidade: '3 unidades',
+        validade: '2026-12-27'
+      });
+    const id = criacao.body.id;
+
+    await request(app)
+      .post(`/api/doacoes/${id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+
+    const devolucao1 = await request(app)
+      .post(`/api/doacoes/${id}/devolver`)
+      .send({ ong: 'Casa Esperança', motivo: 'sem voluntário hoje' });
+    expect(devolucao1.status).toBe(200);
+
+    const novoAceiteOutraOng = await request(app)
+      .post(`/api/doacoes/${id}/aceitar`)
+      .send({ ong: 'Cozinha Solidária' });
+    expect(novoAceiteOutraOng.status).toBe(200);
+    expect(novoAceiteOutraOng.body).toMatchObject({
+      id,
+      status: 'aceita',
+      ong: 'Cozinha Solidária'
+    });
+
+    const devolucao2 = await request(app)
+      .post(`/api/doacoes/${id}/devolver`)
+      .send({ ong: 'Cozinha Solidária', motivo: 'imprevisto no transporte' });
+    expect(devolucao2.status).toBe(200);
+
+    const novoAceiteMesmaOng = await request(app)
+      .post(`/api/doacoes/${id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+    expect(novoAceiteMesmaOng.status).toBe(200);
+    expect(novoAceiteMesmaOng.body).toMatchObject({
+      id,
+      status: 'aceita',
+      ong: 'Casa Esperança'
+    });
+  });
+
+  it('H3 limite: recusa devolver doação ainda disponível ou inexistente', async () => {
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Arroz',
+        quantidade: '5 kg',
+        validade: '2026-12-28'
+      });
+    const id = criacao.body.id;
+
+    const disponivelRes = await request(app)
+      .post(`/api/doacoes/${id}/devolver`)
+      .send({ ong: 'Casa Esperança', motivo: 'teste' });
+    expect(disponivelRes.status).toBe(400);
+    expect(disponivelRes.body.erro).toBe('Só é possível devolver uma doação aceita.');
+
+    const inexistenteRes = await request(app)
+      .post('/api/doacoes/9999/devolver')
+      .send({ ong: 'Casa Esperança', motivo: 'teste' });
+    expect(inexistenteRes.status).toBe(400);
+    expect(inexistenteRes.body.erro).toBe('Doação não encontrada.');
+  });
+});
+
 afterAll(async () => {
   await encerrar();
 });

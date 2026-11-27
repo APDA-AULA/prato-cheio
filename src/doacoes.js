@@ -98,3 +98,30 @@ export async function confirmarColeta(id, voluntario) {
 
   return atualizada;
 }
+
+// H3 — "a ONG devolve uma doação aceita".
+export async function devolverDoacao(id, { ong, motivo } = {}) {
+  const doacao = await repo.buscarPorId(id);
+  if (!doacao) {
+    throw new Error('Doação não encontrada.');
+  }
+  if (doacao.status === 'coletada') {
+    throw new Error('Não é possível devolver uma doação que já foi coletada.');
+  }
+  if (doacao.status !== 'aceita') {
+    throw new Error('Só é possível devolver uma doação aceita.');
+  }
+  if (!ong || String(ong).trim() !== doacao.ong) {
+    throw new Error('Apenas a ONG que aceitou a doação pode devolvê-la.');
+  }
+  if (!motivo || !String(motivo).trim()) {
+    throw new Error('O motivo da devolução é obrigatório.');
+  }
+
+  const atualizada = await repo.devolver(id, String(ong).trim(), String(motivo).trim());
+  if (!atualizada) {
+    throw new Error('Não foi possível devolver a doação.');
+  }
+
+  return atualizada;
+}
