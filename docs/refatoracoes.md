@@ -17,7 +17,7 @@
 - **Evidência de que o comportamento se manteve:**
   - testes antes da mudança: `11 passando` (7 em `tests/doacoes.test.js` + 4 em `tests/db.test.js`)
   - testes depois da mudança: `11 passando` (7 em `tests/doacoes.test.js` + 4 em `tests/db.test.js`, sem alterar nenhum teste de domínio/API)
-  - link da execução do CI verde: workflow `.github/workflows/ci.yml` sobre PostgreSQL 16 (`feat/iteracao-0-base-postgresql`)
+  - link da execução do CI verde: https://github.com/APDA-AULA/prato-cheio/actions/runs/45727597901 (Iteração 0) · branch `entrega-3`: https://github.com/APDA-AULA/prato-cheio/actions/runs/46070341473
 
 ## Refatoração 2 — Extração da máquina de transição de estados (Regra de Três)
 
@@ -29,7 +29,7 @@
 - **Evidência de que o comportamento se manteve:**
   - testes antes da mudança: `29 passando` (25 em `tests/doacoes.test.js` + 4 em `tests/db.test.js`)
   - testes depois da mudança: `29 passando` (25 em `tests/doacoes.test.js` + 4 em `tests/db.test.js`, zero alterações na suíte de testes)
-  - Revisão: https://github.com/APDA-AULA/prato-cheio/pull/new/refactor/h3-regra-de-tres-transicoes (revisão em linha de `@0gudu` incorporando 3 pontos: congelamento imutável `Object.freeze(TRANSICOES_PERMITIDAS)` contra mutação acidental do grafo, helper `exigirTexto` eliminando `.trim()` repetido nas entradas de domínio e mapa contextual de mensagens de erro por estado atual em `buscarEValidarTransicao`).
+  - Revisão: https://github.com/APDA-AULA/prato-cheio/pull/13 (revisão em linha de `@0gudu` incorporando 3 pontos: congelamento imutável `Object.freeze(TRANSICOES_PERMITIDAS)` contra mutação acidental do grafo, helper `exigirTexto` eliminando `.trim()` repetido nas entradas de domínio e mapa contextual de mensagens de erro por estado atual em `buscarEValidarTransicao`).
 
 ---
 
