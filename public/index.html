@@ -93,6 +93,11 @@
     <ul id="lista"></ul>
   </section>
 
+  <section class="painel" aria-labelledby="titulo-aceitas">
+    <h2 id="titulo-aceitas" style="margin-top: 0;">Doações aceitas (aguardando coleta)</h2>
+    <ul id="lista-aceitas"></ul>
+  </section>
+
   <section class="painel" aria-labelledby="titulo-minhas">
     <h2 id="titulo-minhas" style="margin-top: 0;">Minhas doações</h2>
     <label for="filtro-doador">Doador / estabelecimento</label>
@@ -133,6 +138,21 @@
       alertaErro.hidden = true;
     }
 
+    function definirListaVazia(ul, mensagem) {
+      ul.replaceChildren();
+      const li = document.createElement('li');
+      li.textContent = mensagem;
+      ul.appendChild(li);
+    }
+
+    async function atualizarListas() {
+      await carregar();
+      await carregarAceitas();
+      if (campoFiltroDoador.value.trim()) {
+        await consultarMinhas(false);
+      }
+    }
+
     async function carregar() {
       const res = await fetch('/api/doacoes');
       const dados = await res.json();
@@ -142,7 +162,11 @@
       }
 
       const lista = document.getElementById('lista');
-      lista.innerHTML = dados.length ? '' : '<li>Nenhuma doação disponível.</li>';
+      if (!dados.length) {
+        definirListaVazia(lista, 'Nenhuma doação disponível.');
+        return;
+      }
+      lista.replaceChildren();
 
       for (const d of dados) {
         const li = document.createElement('li');
@@ -163,17 +187,67 @@
           const corpo = await resposta.json();
           if (!resposta.ok) {
             exibirErro(corpo.erro || 'Não foi possível aceitar a doação.');
-            await carregar();
+            await atualizarListas();
             return;
           }
           limparErro();
-          await carregar();
-          if (campoFiltroDoador.value.trim()) {
-            await consultarMinhas(false);
-          }
+          await atualizarListas();
         };
         li.appendChild(botao);
         lista.appendChild(li);
+      }
+    }
+
+    async function carregarAceitas() {
+      const res = await fetch('/api/doacoes/aceitas');
+      const dados = await res.json();
+      if (!res.ok) {
+        exibirErro(dados.erro || 'Erro ao carregar doações aceitas.');
+        return;
+      }
+
+      const listaAceitas = document.getElementById('lista-aceitas');
+      if (!dados.length) {
+        definirListaVazia(listaAceitas, 'Nenhuma doação aguardando coleta.');
+        return;
+      }
+      listaAceitas.replaceChildren();
+
+      for (const d of dados) {
+        const li = document.createElement('li');
+        const texto = document.createElement('div');
+        texto.textContent = `${d.tipo} — ${d.quantidade} · ONG: ${d.ong}`;
+        li.appendChild(texto);
+
+        const rotulo = document.createElement('label');
+        rotulo.htmlFor = `voluntario-${d.id}`;
+        rotulo.textContent = 'Voluntário na coleta';
+        li.appendChild(rotulo);
+
+        const campoVoluntario = document.createElement('input');
+        campoVoluntario.id = `voluntario-${d.id}`;
+        campoVoluntario.placeholder = 'Primeiro nome do voluntário (ex.: Rui)';
+        li.appendChild(campoVoluntario);
+
+        const botao = document.createElement('button');
+        botao.type = 'button';
+        botao.textContent = 'Confirmar coleta';
+        botao.onclick = async () => {
+          const resposta = await fetch(`/api/doacoes/${d.id}/coletar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ voluntario: campoVoluntario.value })
+          });
+          const corpo = await resposta.json();
+          if (!resposta.ok) {
+            exibirErro(corpo.erro || 'Não foi possível confirmar a coleta.');
+            return;
+          }
+          limparErro();
+          await atualizarListas();
+        };
+        li.appendChild(botao);
+        listaAceitas.appendChild(li);
       }
     }
 
@@ -198,13 +272,19 @@
       }
 
       const listaMinhas = document.getElementById('lista-minhas');
-      listaMinhas.innerHTML = dados.length
-        ? ''
-        : '<li>Nenhuma doação encontrada para este doador.</li>';
+      if (!dados.length) {
+        definirListaVazia(listaMinhas, 'Nenhuma doação encontrada para este doador.');
+        return;
+      }
+      listaMinhas.replaceChildren();
 
       for (const d of dados) {
         const li = document.createElement('li');
-        li.textContent = `${d.tipo} — ${d.quantidade} (até ${d.validade}) · Situação: ${d.situacao}`;
+        const situacaoTexto =
+          d.status === 'coletada' && d.voluntario
+            ? `coletada (voluntário: ${d.voluntario})`
+            : d.situacao;
+        li.textContent = `${d.tipo} — ${d.quantidade} (até ${d.validade}) · Situação: ${situacaoTexto}`;
         listaMinhas.appendChild(li);
       }
     }
@@ -236,10 +316,7 @@
       document.getElementById('quantidade').value = '';
       document.getElementById('validade').value = '';
 
-      await carregar();
-      if (campoFiltroDoador.value.trim()) {
-        await consultarMinhas(false);
-      }
+      await atualizarListas();
     };
 
     document.getElementById('consultar-minhas').onclick = () => consultarMinhas(true);
@@ -248,6 +325,7 @@
     campoDoador.value = doadorInicial;
     campoFiltroDoador.value = doadorInicial;
     carregar();
+    carregarAceitas();
     if (doadorInicial.trim()) {
       consultarMinhas(false);
     }

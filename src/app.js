@@ -17,6 +17,14 @@ export function criarApp() {
     }
   });
 
+  app.get('/api/doacoes/aceitas', async (req, res) => {
+    try {
+      res.json(await doacoes.listarAceitas());
+    } catch (erro) {
+      res.status(400).json({ erro: erro.message });
+    }
+  });
+
   app.get('/api/minhas-doacoes', async (req, res) => {
     try {
       res.json(await doacoes.listarPorDoador(req.query.doador));

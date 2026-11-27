@@ -445,6 +445,56 @@ describe('H2 — o voluntário confirma a coleta', () => {
     expect(res.status).toBe(400);
     expect(res.body.erro).toBe('Doação não encontrada.');
   });
+
+  it('H2 tela: lista apenas doações aceitas aguardando coleta em /api/doacoes/aceitas', async () => {
+    const d1 = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Pão Francês',
+        quantidade: '25 unidades',
+        validade: '2026-12-24'
+      });
+
+    const d2 = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Sopa de Legumes',
+        quantidade: '15 porções',
+        validade: '2026-12-24'
+      });
+    await request(app)
+      .post(`/api/doacoes/${d2.body.id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+
+    const d3 = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Restaurante Bom Prato',
+        tipo: 'Marmitas',
+        quantidade: '10 unidades',
+        validade: '2026-12-24'
+      });
+    await request(app)
+      .post(`/api/doacoes/${d3.body.id}/aceitar`)
+      .send({ ong: 'Cozinha Solidária' });
+    await request(app)
+      .post(`/api/doacoes/${d3.body.id}/coletar`)
+      .send({ voluntario: 'Rui' });
+
+    const res = await request(app).get('/api/doacoes/aceitas');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0]).toMatchObject({
+      id: d2.body.id,
+      tipo: 'Sopa de Legumes',
+      status: 'aceita',
+      ong: 'Casa Esperança'
+    });
+    expect(res.body.find((item) => item.id === d1.body.id)).toBeUndefined();
+    expect(res.body.find((item) => item.id === d3.body.id)).toBeUndefined();
+  });
 });
 
 afterAll(async () => {

@@ -33,6 +33,11 @@ export async function listarDisponiveis() {
   return await repo.listarDisponiveis();
 }
 
+// H2 — "o voluntário vê as doações aceitas aguardando coleta".
+export async function listarAceitas() {
+  return await repo.listarAceitas();
+}
+
 // H1 — "o doador acompanha as suas doações".
 export async function listarPorDoador(doador) {
   if (!doador || !String(doador).trim()) {
