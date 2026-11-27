@@ -33,6 +33,24 @@ export async function listarDisponiveis() {
   return await repo.listarDisponiveis();
 }
 
+// H1 — "o doador acompanha as suas doações".
+export async function listarPorDoador(doador) {
+  if (!doador || !String(doador).trim()) {
+    throw new Error('Informe o nome do doador para consultar.');
+  }
+
+  const nomeDoador = String(doador).trim();
+  if (nomeDoador === 'Doador não informado') {
+    return [];
+  }
+
+  const lista = await repo.listarPorDoador(nomeDoador);
+  return lista.map((row) => ({
+    ...row,
+    situacao: row.status === 'aceita' && row.ong ? `aceita por ${row.ong}` : row.status
+  }));
+}
+
 // História zero — "uma ONG aceita uma doação".
 // Regra do caso: uma doação aceita não fica disponível para outra ONG.
 export async function aceitar(id, ong = 'ONG') {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import { criarApp } from '../src/app.js';
-import { migrar, limparBanco, encerrar } from '../src/db.js';
+import { migrar, limparBanco, encerrar, query } from '../src/db.js';
 
 const app = criarApp();
 
@@ -138,6 +138,84 @@ describe('H1 — o doador acompanha as suas doações', () => {
     await limparBanco();
   });
 
+  it('H1 CA1: lista as doações do doador com situação disponível e aceita pela ONG', async () => {
+    const d1 = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Pão Francês',
+        quantidade: '30 unidades',
+        validade: '2026-12-10'
+      });
+    expect(d1.status).toBe(201);
+
+    const d2 = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Bolo de Milho',
+        quantidade: '4 unidades',
+        validade: '2026-12-11'
+      });
+    expect(d2.status).toBe(201);
+
+    const aceite = await request(app)
+      .post(`/api/doacoes/${d2.body.id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+    expect(aceite.status).toBe(200);
+
+    const consulta = await request(app)
+      .get('/api/minhas-doacoes?doador=Padaria%20P%C3%A3o%20Bom');
+
+    expect(consulta.status).toBe(200);
+    expect(consulta.body).toHaveLength(2);
+
+    const disponivel = consulta.body.find((item) => item.id === d1.body.id);
+    const aceita = consulta.body.find((item) => item.id === d2.body.id);
+
+    expect(disponivel).toMatchObject({
+      doador: 'Padaria Pão Bom',
+      tipo: 'Pão Francês',
+      status: 'disponivel',
+      situacao: 'disponivel'
+    });
+    expect(aceita).toMatchObject({
+      doador: 'Padaria Pão Bom',
+      tipo: 'Bolo de Milho',
+      status: 'aceita',
+      ong: 'Casa Esperança',
+      situacao: 'aceita por Casa Esperança'
+    });
+  });
+
+  it('H1 CA2: não exibe doações publicadas por outros doadores', async () => {
+    await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Pão Integral',
+        quantidade: '12 pacotes',
+        validade: '2026-12-12'
+      });
+
+    await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Restaurante Sabor Caseiro',
+        tipo: 'Marmitas',
+        quantidade: '15 unidades',
+        validade: '2026-12-12'
+      });
+
+    const consulta = await request(app)
+      .get('/api/minhas-doacoes?doador=Padaria%20P%C3%A3o%20Bom');
+
+    expect(consulta.status).toBe(200);
+    expect(consulta.body).toHaveLength(1);
+    expect(consulta.body[0].doador).toBe('Padaria Pão Bom');
+    expect(consulta.body[0].tipo).toBe('Pão Integral');
+  });
+
   it('H1 CA3: recusa publicação quando o doador não é informado e não grava nada', async () => {
     const res = await request(app)
       .post('/api/doacoes')
@@ -162,6 +240,22 @@ describe('H1 — o doador acompanha as suas doações', () => {
     const lista = await request(app).get('/api/doacoes');
     expect(lista.status).toBe(200);
     expect(lista.body).toEqual([]);
+  });
+
+  it('H1 limite: doações antigas sem doador identificado não aparecem na consulta', async () => {
+    await query(
+      'INSERT INTO doacoes (tipo, quantidade, validade) VALUES ($1, $2, $3)',
+      ['Frutas da Estação', '8 kg', '2026-12-15']
+    );
+
+    const consultaPadrao = await request(app)
+      .get('/api/minhas-doacoes?doador=Doador%20n%C3%A3o%20informado');
+    expect(consultaPadrao.status).toBe(200);
+    expect(consultaPadrao.body).toEqual([]);
+
+    const consultaSemParametro = await request(app).get('/api/minhas-doacoes');
+    expect(consultaSemParametro.status).toBe(400);
+    expect(consultaSemParametro.body.erro).toBe('Informe o nome do doador para consultar.');
   });
 });
 
