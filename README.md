@@ -10,7 +10,6 @@ Conecta doadores de alimentos excedentes a ONGs, antes que a comida se perca.
 - Maria Eduarda Huida — `@Madu-huida`
 - Lucas Giovani Fruck — `@LucasGiovaniFruck`
 - Gustavo José Paulo — `@0gudu`
-- Murilo Calixto Nascimento — `@MuriloCalixto`
 
 ## Como rodar
 
@@ -71,9 +70,9 @@ Uma história ou tarefa só é considerada pronta quando atende a todos os crit�
 |---|---|---|
 | Iteração 0 — Base (PostgreSQL) | Maria Eduarda Huida (`@Madu-huida`) | Lucas Giovani Fruck (`@LucasGiovaniFruck`) |
 | H1 — O doador acompanha as suas doações | Lucas Giovani Fruck (`@LucasGiovaniFruck`) | Maria Eduarda Huida (`@Madu-huida`) |
-| H2 — O voluntário confirma a coleta | Gustavo José Paulo (`@0gudu`) | Murilo Calixto (`@MuriloCalixto`) |
+| H2 — O voluntário confirma a coleta | Gustavo José Paulo (`@0gudu`) | Lucas Giovani Fruck (`@LucasGiovaniFruck`) |
 | H3 — A ONG devolve uma doação aceita + Refatoração 2 | Maria Eduarda Huida (`@Madu-huida`) | Gustavo José Paulo (`@0gudu`) |
-| H4 — A Marta vê o resultado do mês | Murilo Calixto (`@MuriloCalixto`) | Lucas Giovani Fruck (`@LucasGiovaniFruck`) |
+| H4 — A Marta vê o resultado do mês | Gustavo José Paulo (`@0gudu`) | Maria Eduarda Huida (`@Madu-huida`) |
 
 ## O banco: SQLite na U1/U2, PostgreSQL na U3
 
@@ -121,17 +120,17 @@ peça a revisão de **outro integrante**. Só então faça o merge.
 
 ## O que já está pronto e o que falta
 
-**Pronto (Unidades 1, 2 e Iteração 0 do Trabalho 3):**
-- História Zero funcionando ponta a ponta: doador publica doação, ONG visualiza disponíveis e aceita a doação (removendo-a da lista de disponíveis e impedindo aceite concorrente duplicado).
-- Persistência migrada para **PostgreSQL 16** (Refatoração 1, sem alterar `src/doacoes.js` nem `tests/doacoes.test.js`), com guarda ativa `ehBancoDeTeste()` contra limpeza acidental do banco real.
-- Pipeline de CI no GitHub Actions com serviço PostgreSQL 16 e suíte de testes automatizados (11 testes passando).
-- Documentação de análise, projeto, ADRs e contrato de estados/políticas do Trabalho 3.
+**Pronto (Unidades 1, 2 e Trabalho 3 completo na branch `entrega-3`):**
+- **História Zero + Base PostgreSQL 16 (Refatoração 1):** publicação, listagem de disponíveis e aceite atômico sobre PostgreSQL, com guarda ativa `ehBancoDeTeste()` (ADR 0002) e pipeline de CI com 33 testes passando.
+- **H1 — O doador acompanha as suas doações:** identificação obrigatória do doador na publicação (`localStorage` no celular) e seção "Minhas doações" exibindo a situação atual de cada item sem vazar registros legados.
+- **H2 — O voluntário confirma a coleta:** transição `aceita -> coletada` registrando primeiro nome/apelido do voluntário e horário real (`coletada_em`), validada com inversão de regra.
+- **H3 + Refatoração 2:** devolução de doação aceita (`aceita -> disponivel`) pela ONG responsável com motivo obrigatório para auditoria (oculto da lista pública) e extração da máquina de estados `TRANSICOES_PERMITIDAS` pela Regra de Três em `src/doacoes.js`.
+- **H4 — A Marta vê o resultado do mês:** painel mensal no celular e rota `GET /api/resultados?mes=YYYY-MM` contabilizando publicadas, aceitas, coletadas e tempo médio até coleta em horas (fuso `America/Sao_Paulo`, casts nativos no PostgreSQL e datas controladas nos testes).
 
-**Falta (Iterações 1 a 4 do Trabalho 3):**
-- **H1:** O doador acompanha as suas doações (`doador` obrigatório e tela "Minhas doações").
-- **H2:** O voluntário confirma a coleta (`disponivel -> aceita -> coletada`, com primeiro nome/apelido do voluntário).
-- **H3 + Refatoração 2:** A ONG devolve uma doação aceita (`aceita -> disponivel`, com motivo de devolução para auditoria) e extração pela Regra de Três em `src/doacoes.js`.
-- **H4:** A Marta vê o resultado do mês (métricas mensais de publicadas, aceitas, coletadas e tempo médio até coleta).
+**Fora de escopo atual (próximos incrementos):**
+- Autenticação com login/senha (mantida identificação leve no piloto para reduzir atrito).
+- Paginação (`LIMIT`) e filtro por proximidade geográfica nas listagens.
+- Expiração automática em background após 2 horas sem coleta (atendida manualmente via devolução explícita em H3).
 
 ## Uso de IA
 
