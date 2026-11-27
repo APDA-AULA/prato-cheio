@@ -110,11 +110,20 @@
     <ul id="lista-minhas"></ul>
   </section>
 
+  <section class="painel" aria-labelledby="titulo-resultado">
+    <h2 id="titulo-resultado" style="margin-top: 0;">Resultado do mês (Painel da Marta)</h2>
+    <label for="mes-resultado">Mês de referência</label>
+    <input id="mes-resultado" type="month">
+    <button id="consultar-resultado" class="secundario" type="button">Consultar resultado</button>
+    <div id="painel-resultado" style="margin-top: .75rem;"></div>
+  </section>
+
   <script>
     const CHAVE_DOADOR = 'pratocheio_doador';
     const alertaErro = document.getElementById('alerta-erro');
     const campoDoador = document.getElementById('doador');
     const campoFiltroDoador = document.getElementById('filtro-doador');
+    const campoMesResultado = document.getElementById('mes-resultado');
 
     function lerDoadorSalvo() {
       try {
@@ -154,6 +163,9 @@
       await carregarAceitas();
       if (campoFiltroDoador.value.trim()) {
         await consultarMinhas(false);
+      }
+      if (campoMesResultado.value.trim()) {
+        await consultarResultado(false);
       }
     }
 
@@ -374,7 +386,43 @@
       await atualizarListas();
     };
 
+    async function consultarResultado(limparAlerta = true) {
+      const mes = campoMesResultado.value;
+      const res = await fetch(`/api/resultados?mes=${encodeURIComponent(mes)}`);
+      const dados = await res.json();
+      if (!res.ok) {
+        exibirErro(dados.erro || 'Erro ao consultar o resultado do mês.');
+        return;
+      }
+
+      if (limparAlerta) {
+        limparErro();
+      }
+
+      const painel = document.getElementById('painel-resultado');
+      painel.replaceChildren();
+
+      const listaMetricas = document.createElement('ul');
+      const metricas = [
+        `Publicadas: ${dados.publicadas}`,
+        `Aceitas: ${dados.aceitas}`,
+        `Coletadas: ${dados.coletadas}`,
+        `Tempo médio até a coleta: ${dados.tempoMedioColeta}`
+      ];
+
+      for (const textoMetrica of metricas) {
+        const item = document.createElement('li');
+        item.textContent = textoMetrica;
+        listaMetricas.appendChild(item);
+      }
+      painel.appendChild(listaMetricas);
+    }
+
     document.getElementById('consultar-minhas').onclick = () => consultarMinhas(true);
+    document.getElementById('consultar-resultado').onclick = () => consultarResultado(true);
+
+    const agora = new Date();
+    campoMesResultado.value = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
 
     const doadorInicial = lerDoadorSalvo();
     campoDoador.value = doadorInicial;
@@ -384,6 +432,7 @@
     if (doadorInicial.trim()) {
       consultarMinhas(false);
     }
+    consultarResultado(false);
   </script>
 </body>
 </html>
