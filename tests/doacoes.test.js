@@ -732,6 +732,215 @@ describe('H3 — a ONG devolve uma doação aceita', () => {
   });
 });
 
+describe('H4 — a Marta vê o resultado do mês', () => {
+  beforeEach(async () => {
+    await migrar();
+    await limparBanco();
+  });
+
+  it('H4 CA1: retorna publicadas, aceitas, coletadas e tempo médio em horas no mês', async () => {
+    const d1 = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Sopa de Legumes',
+        quantidade: '15 porções',
+        validade: '2026-11-15',
+        criadaEm: '2026-11-10T10:00:00-03:00'
+      });
+    const d2 = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Pão Francês',
+        quantidade: '30 unidades',
+        validade: '2026-11-15',
+        criadaEm: '2026-11-10T10:00:00-03:00'
+      });
+    await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Restaurante Bom Prato',
+        tipo: 'Frutas',
+        quantidade: '10 kg',
+        validade: '2026-11-15',
+        criadaEm: '2026-11-10T10:00:00-03:00'
+      });
+
+    await request(app)
+      .post(`/api/doacoes/${d1.body.id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+    await request(app)
+      .post(`/api/doacoes/${d2.body.id}/aceitar`)
+      .send({ ong: 'Cozinha Solidária' });
+
+    await request(app)
+      .post(`/api/doacoes/${d1.body.id}/coletar`)
+      .send({
+        voluntario: 'Rui',
+        coletadaEm: '2026-11-10T15:00:00-03:00'
+      });
+
+    const res = await request(app).get('/api/resultados?mes=2026-11');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      mes: '2026-11',
+      publicadas: 3,
+      aceitas: 2,
+      coletadas: 1,
+      tempoMedioColeta: '5 h'
+    });
+  });
+
+  it('H4 CA2: exibe sem coletas no mês quando não há nenhuma coleta no período', async () => {
+    const d1 = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Pão Integral',
+        quantidade: '12 pacotes',
+        validade: '2026-11-20',
+        criadaEm: '2026-11-12T09:00:00-03:00'
+      });
+    await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Restaurante Bom Prato',
+        tipo: 'Arroz',
+        quantidade: '5 kg',
+        validade: '2026-11-20',
+        criadaEm: '2026-11-12T11:00:00-03:00'
+      });
+
+    await request(app)
+      .post(`/api/doacoes/${d1.body.id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+
+    const res = await request(app).get('/api/resultados?mes=2026-11');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      mes: '2026-11',
+      publicadas: 2,
+      aceitas: 1,
+      coletadas: 0,
+      tempoMedioColeta: 'sem coletas no mês'
+    });
+
+    const mesVazio = await request(app).get('/api/resultados?mes=2026-09');
+    expect(mesVazio.status).toBe(200);
+    expect(mesVazio.body).toEqual({
+      mes: '2026-09',
+      publicadas: 0,
+      aceitas: 0,
+      coletadas: 0,
+      tempoMedioColeta: 'sem coletas no mês'
+    });
+  });
+
+  it('H4 CA3: contabiliza doação publicada em 31/10 e coletada em 01/11 no mês de publicação (outubro)', async () => {
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Marmitas',
+        quantidade: '20 unidades',
+        validade: '2026-11-01',
+        criadaEm: '2026-10-31T21:00:00-03:00'
+      });
+    const id = criacao.body.id;
+
+    await request(app)
+      .post(`/api/doacoes/${id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+
+    await request(app)
+      .post(`/api/doacoes/${id}/coletar`)
+      .send({
+        voluntario: 'Rui',
+        coletadaEm: '2026-11-01T02:00:00-03:00'
+      });
+
+    const outubro = await request(app).get('/api/resultados?mes=2026-10');
+    expect(outubro.status).toBe(200);
+    expect(outubro.body).toEqual({
+      mes: '2026-10',
+      publicadas: 1,
+      aceitas: 1,
+      coletadas: 1,
+      tempoMedioColeta: '5 h'
+    });
+
+    const novembro = await request(app).get('/api/resultados?mes=2026-11');
+    expect(novembro.status).toBe(200);
+    expect(novembro.body).toEqual({
+      mes: '2026-11',
+      publicadas: 0,
+      aceitas: 0,
+      coletadas: 0,
+      tempoMedioColeta: 'sem coletas no mês'
+    });
+  });
+
+  it('H4 limite: doação devolvida conta apenas em publicadas e mês inválido é recusado', async () => {
+    const devolvida = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Bolo de Cenoura',
+        quantidade: '3 unidades',
+        validade: '2026-11-25',
+        criadaEm: '2026-11-15T08:00:00-03:00'
+      });
+
+    await request(app)
+      .post(`/api/doacoes/${devolvida.body.id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+
+    await request(app)
+      .post(`/api/doacoes/${devolvida.body.id}/devolver`)
+      .send({ ong: 'Casa Esperança', motivo: 'sem voluntário hoje' });
+
+    const coletadaFracionaria = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Restaurante Bom Prato',
+        tipo: 'Sopa',
+        quantidade: '10 porções',
+        validade: '2026-11-25',
+        criadaEm: '2026-11-15T08:00:00-03:00'
+      });
+
+    await request(app)
+      .post(`/api/doacoes/${coletadaFracionaria.body.id}/aceitar`)
+      .send({ ong: 'Cozinha Solidária' });
+
+    await request(app)
+      .post(`/api/doacoes/${coletadaFracionaria.body.id}/coletar`)
+      .send({
+        voluntario: 'Rui',
+        coletadaEm: '2026-11-15T12:30:00-03:00'
+      });
+
+    const res = await request(app).get('/api/resultados?mes=2026-11');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      mes: '2026-11',
+      publicadas: 2,
+      aceitas: 1,
+      coletadas: 1,
+      tempoMedioColeta: '4.5 h'
+    });
+
+    const semMes = await request(app).get('/api/resultados');
+    expect(semMes.status).toBe(400);
+    expect(semMes.body.erro).toBe('Informe o mês no formato YYYY-MM.');
+
+    const mesInvalido = await request(app).get('/api/resultados?mes=2026-13');
+    expect(mesInvalido.status).toBe(400);
+    expect(mesInvalido.body.erro).toBe('Informe o mês no formato YYYY-MM.');
+  });
+});
+
 afterAll(async () => {
   await encerrar();
 });

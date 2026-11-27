@@ -51,7 +51,9 @@ export function criarApp() {
 
   app.post('/api/doacoes/:id/coletar', async (req, res) => {
     try {
-      res.json(await doacoes.confirmarColeta(req.params.id, req.body?.voluntario));
+      res.json(
+        await doacoes.confirmarColeta(req.params.id, req.body?.voluntario, req.body?.coletadaEm)
+      );
     } catch (erro) {
       res.status(400).json({ erro: erro.message });
     }
@@ -60,6 +62,14 @@ export function criarApp() {
   app.post('/api/doacoes/:id/devolver', async (req, res) => {
     try {
       res.json(await doacoes.devolverDoacao(req.params.id, req.body));
+    } catch (erro) {
+      res.status(400).json({ erro: erro.message });
+    }
+  });
+
+  app.get('/api/resultados', async (req, res) => {
+    try {
+      res.json(await doacoes.consultarResultadoMes(req.query.mes));
     } catch (erro) {
       res.status(400).json({ erro: erro.message });
     }

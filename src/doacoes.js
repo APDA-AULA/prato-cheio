@@ -34,7 +34,7 @@ async function buscarEValidarTransicao(id, destino, mensagensErro = {}) {
 
 // História zero e H1 — "um doador publica uma doação".
 // Critérios: tipo, quantidade, validade e identificação do doador são obrigatórios.
-export async function criarDoacao({ doador, tipo, quantidade, validade } = {}) {
+export async function criarDoacao({ doador, tipo, quantidade, validade, criadaEm = null } = {}) {
   const tipoLimpo = exigirTexto(tipo, 'Tipo, quantidade e validade são obrigatórios.');
   const quantidadeLimpa = exigirTexto(quantidade, 'Tipo, quantidade e validade são obrigatórios.');
   const validadeLimpa = exigirTexto(validade, 'Tipo, quantidade e validade são obrigatórios.');
@@ -44,11 +44,14 @@ export async function criarDoacao({ doador, tipo, quantidade, validade } = {}) {
     throw new Error('O nome do doador é obrigatório.');
   }
 
+  const criadaEmFinal = criadaEm && String(criadaEm).trim() ? String(criadaEm).trim() : null;
+
   return await repo.inserir({
     doador: doadorLimpo,
     tipo: tipoLimpo,
     quantidade: quantidadeLimpa,
-    validade: validadeLimpa
+    validade: validadeLimpa,
+    criadaEm: criadaEmFinal
   });
 }
 
@@ -93,14 +96,15 @@ export async function aceitar(id, ong = 'ONG') {
 }
 
 // H2 — "o voluntário confirma a coleta".
-export async function confirmarColeta(id, voluntario) {
+export async function confirmarColeta(id, voluntario, coletadaEm = null) {
   await buscarEValidarTransicao(id, 'coletada', {
     coletada: 'Doação já foi coletada.',
     padrao: 'Só é possível confirmar a coleta de uma doação aceita.'
   });
   const voluntarioLimpo = exigirTexto(voluntario, 'O nome do voluntário é obrigatório.');
+  const coletadaEmFinal = coletadaEm && String(coletadaEm).trim() ? String(coletadaEm).trim() : null;
 
-  const atualizada = await repo.confirmarColeta(id, voluntarioLimpo);
+  const atualizada = await repo.confirmarColeta(id, voluntarioLimpo, coletadaEmFinal);
   if (!atualizada) {
     throw new Error('Não foi possível confirmar a coleta.');
   }
@@ -126,4 +130,26 @@ export async function devolverDoacao(id, { ong, motivo } = {}) {
   }
 
   return atualizada;
+}
+
+// H4 — "a Marta vê o resultado do mês".
+export async function consultarResultadoMes(mes) {
+  const mesLimpo = String(mes || '').trim();
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mesLimpo)) {
+    throw new Error('Informe o mês no formato YYYY-MM.');
+  }
+
+  const dados = await repo.obterResultadoMes(mesLimpo);
+  const tempoMedioColeta =
+    dados.coletadas === 0 || dados.media_horas === null
+      ? 'sem coletas no mês'
+      : `${Math.round(dados.media_horas * 10) / 10} h`;
+
+  return {
+    mes: mesLimpo,
+    publicadas: dados.publicadas,
+    aceitas: dados.aceitas,
+    coletadas: dados.coletadas,
+    tempoMedioColeta
+  };
 }
