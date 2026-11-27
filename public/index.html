@@ -46,6 +46,10 @@
       background: #047857;
       border-color: #065f46;
     }
+    button.devolver {
+      background: #b45309;
+      border-color: #92400e;
+    }
     ul { padding: 0; margin: .5rem 0 0; }
     li {
       border: 1px solid #e5e7eb;
@@ -247,6 +251,57 @@
           await atualizarListas();
         };
         li.appendChild(botao);
+
+        const separador = document.createElement('hr');
+        separador.style.border = '0';
+        separador.style.borderTop = '1px solid #e5e7eb';
+        separador.style.margin = '.75rem 0 .5rem';
+        li.appendChild(separador);
+
+        const rotuloOng = document.createElement('label');
+        rotuloOng.htmlFor = `ong-devolucao-${d.id}`;
+        rotuloOng.textContent = 'ONG responsável (para devolução)';
+        li.appendChild(rotuloOng);
+
+        const campoOngDevolucao = document.createElement('input');
+        campoOngDevolucao.id = `ong-devolucao-${d.id}`;
+        campoOngDevolucao.value = d.ong || '';
+        campoOngDevolucao.placeholder = 'Ex.: Casa Esperança';
+        li.appendChild(campoOngDevolucao);
+
+        const rotuloMotivo = document.createElement('label');
+        rotuloMotivo.htmlFor = `motivo-devolucao-${d.id}`;
+        rotuloMotivo.textContent = 'Motivo da devolução';
+        li.appendChild(rotuloMotivo);
+
+        const campoMotivo = document.createElement('input');
+        campoMotivo.id = `motivo-devolucao-${d.id}`;
+        campoMotivo.placeholder = 'Motivo da devolução (ex.: sem voluntário hoje)';
+        li.appendChild(campoMotivo);
+
+        const botaoDevolver = document.createElement('button');
+        botaoDevolver.type = 'button';
+        botaoDevolver.className = 'devolver';
+        botaoDevolver.textContent = 'Devolver doação';
+        botaoDevolver.onclick = async () => {
+          const resposta = await fetch(`/api/doacoes/${d.id}/devolver`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ong: campoOngDevolucao.value,
+              motivo: campoMotivo.value
+            })
+          });
+          const corpo = await resposta.json();
+          if (!resposta.ok) {
+            exibirErro(corpo.erro || 'Não foi possível devolver a doação.');
+            return;
+          }
+          limparErro();
+          await atualizarListas();
+        };
+        li.appendChild(botaoDevolver);
+
         listaAceitas.appendChild(li);
       }
     }
