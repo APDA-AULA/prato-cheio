@@ -1,23 +1,46 @@
 # Validação — Prato Cheio
 
-*Trabalho 3 · confronto do produto com os critérios de aceite escritos na Unidade 1*
+*Trabalho 3 · confronto do produto com os critérios de aceite da Unidade 1 e das histórias H1–H4*
 
-Copie aqui os critérios de aceite do seu `docs/analise.md` e marque um por um. **Um "não atende" bem justificado vale mais que um "sim" sem evidência.**
+Confronto rigoroso entre a implementação atual do produto e os critérios de aceite definidos em [docs/analise.md](analise.md) (Unidade 1, copiados integralmente) seguidos pelos critérios das histórias da Unidade 3 ([execução verde do CI na `entrega-3`](https://github.com/APDA-AULA/prato-cheio/actions/runs/46070341473)).
 
-| # | Critério de aceite (da Unidade 1) | Atende? | Evidência |
+| # | Critério de aceite | Atende? | Evidência |
 |:--:|---|:--:|---|
-| 1 |  | sim / parcial / não | teste, demo, execução do CI |
-| 2 |  |  |  |
-| 3 |  |  |  |
+| U1·1 | Dado que sou um doador preenchendo o formulário, Quando envio sem os campos obrigatórios, Então o sistema recusa e exibe um erro. | atende | Teste `"1. recusa doação sem os campos obrigatórios"` em [tests/doacoes.test.js](../tests/doacoes.test.js), banner visual `#alerta-erro` em [public/index.html](../public/index.html), passo 8 de [docs/demo.md](demo.md) e CI verde. |
+| U1·2 | Dado que preenchi corretamente, Quando publico a doação, Então ela aparece na lista de doações disponíveis. | atende | Teste `"2. mostra a doação publicada na lista de disponíveis"` em [tests/doacoes.test.js](../tests/doacoes.test.js), passo 2 de [docs/demo.md](demo.md) e CI verde. |
+| U1·3 | Dado que uma doação está disponível, Quando uma ONG clica em aceitar, Então a doação é marcada como aceita. | atende | Teste `"3. marca a doação como aceita pela ONG"` em [tests/doacoes.test.js](../tests/doacoes.test.js), passo 3 de [docs/demo.md](demo.md) e CI verde. |
+| U1·4 | Dado que uma doação foi aceita, Quando a lista é atualizada, Então essa doação sai da lista de disponíveis. | atende | Teste `"4. remove a doação da lista de disponíveis depois de aceita"` em [tests/doacoes.test.js](../tests/doacoes.test.js), passo 3 de [docs/demo.md](demo.md) e CI verde. |
+| U1·5 | Dado que a doação "Bolo" já foi aceita pela ONG A, Quando a ONG B tenta aceitar "Bolo" diretamente, Então o sistema recusa a ação. | atende | Teste `"5. recusa aceitar uma doação que já foi aceita por outra ONG"` em [tests/doacoes.test.js](../tests/doacoes.test.js) e CI verde. |
+| H1·CA1 | Dado que a "Padaria Pão Bom" publicou duas doações e a "Casa Esperança" aceitou uma delas, quando a padaria consulta as suas doações, então vê as duas: uma disponível e outra aceita por Casa Esperança. | atende | Teste `"H1 CA1: lista as doações do doador com situação disponível e aceita pela ONG"` em [tests/doacoes.test.js](../tests/doacoes.test.js), seção "Minhas doações" em [public/index.html](../public/index.html) e passo 3 de [docs/demo.md](demo.md). |
+| H1·CA2 | Dado que outro doador publicou uma doação, quando a "Padaria Pão Bom" consulta as suas, então essa doação não aparece. | atende | Testes `"H1 CA2: não exibe doações publicadas por outros doadores"` e `"H1 limite: doações antigas sem doador identificado não aparecem na consulta"` em [tests/doacoes.test.js](../tests/doacoes.test.js). |
+| H1·CA3 | Dado que o doador não é informado na publicação, quando a doação é enviada, então ela é recusada com uma mensagem clara e nada é gravado. | atende | Testes `"H1 CA3: recusa publicação quando o doador não é informado e não grava nada"` e `"H1 limite: recusa doador preenchido apenas com espaços em branco"` em [tests/doacoes.test.js](../tests/doacoes.test.js), alerta `#alerta-erro` em [public/index.html](../public/index.html) e passo 8 de [docs/demo.md](demo.md). |
+| H2·CA1 | Dado que a "Casa Esperança" aceitou uma doação, quando o voluntário "Rui" confirma a coleta, então ela passa a coletada, com o nome do voluntário e o horário da coleta. | atende | Testes `"H2 CA1: confirma a coleta de doação aceita registrando voluntário e horário"` e `"H2 tela: lista apenas doações aceitas aguardando coleta em /api/doacoes/aceitas"` em [tests/doacoes.test.js](../tests/doacoes.test.js), seção "Doações aceitas (aguardando coleta)" em [public/index.html](../public/index.html) e passo 4 de [docs/demo.md](demo.md). |
+| H2·CA2 | Dado que a doação ainda está disponível, quando alguém tenta confirmar a coleta, então a confirmação é recusada com mensagem e a doação não muda. | atende | Testes `"H2 CA2: recusa confirmar coleta de doação ainda disponível e não altera a doação"`, `"H2 limite: recusa confirmar duas vezes a mesma coleta preservando voluntário e horário originais"`, `"H2 limite: recusa confirmar coleta sem informar o nome do voluntário"` e `"H2 limite: recusa confirmar coleta de doação inexistente"` em [tests/doacoes.test.js](../tests/doacoes.test.js) (protegido por inversão de regra). |
+| H2·CA3 | Dado que a doação foi coletada, quando o doador consulta as suas doações (H1), então ela aparece como coletada. | atende | Teste `"H2 CA3: exibe a doação como coletada quando o doador consulta suas doações"` em [tests/doacoes.test.js](../tests/doacoes.test.js), exibição do voluntário em "Minhas doações" em [public/index.html](../public/index.html) e passo 5 de [docs/demo.md](demo.md). |
+| H3·CA1 | Dado que a "Casa Esperança" aceitou uma doação, quando ela a devolve com o motivo "sem voluntário hoje", então a doação volta para a lista de disponíveis, sem ONG, e o motivo fica registrado. | atende | Testes `"H3 CA1: devolve doação aceita para a lista de disponíveis sem ONG e registra o motivo"` e `"H3 limite: permite que uma doação devolvida seja aceita novamente"` em [tests/doacoes.test.js](../tests/doacoes.test.js), botão "Devolver doação" em [public/index.html](../public/index.html) e passo 6 de [docs/demo.md](demo.md). |
+| H3·CA2 | Dado que a doação já foi coletada, quando a ONG tenta devolvê-la, então a devolução é recusada com mensagem. | atende | Testes `"H3 CA2: recusa devolver uma doação que já foi coletada"`, `"H3 limite: recusa devolução sem informar o motivo"` e `"H3 limite: recusa devolver doação ainda disponível ou inexistente"` em [tests/doacoes.test.js](../tests/doacoes.test.js). |
+| H3·CA3 | Dado que a "Casa Esperança" aceitou a doação, quando outra ONG tenta devolvê-la, então a devolução é recusada e a doação continua aceita pela Casa Esperança. | atende | Teste `"H3 CA3: recusa devolução por outra ONG e mantém a doação aceita pela ONG original"` em [tests/doacoes.test.js](../tests/doacoes.test.js) e validação de titularidade em [src/doacoes.js](../src/doacoes.js). |
+| H4·CA1 | Dado que, em novembro, 3 doações foram publicadas, 2 aceitas e 1 coletada 5 horas depois de publicada, quando a Marta consulta o resultado de novembro, então vê 3 publicadas, 2 aceitas, 1 coletada e tempo médio até a coleta: 5 h. | atende | Testes `"H4 CA1: retorna publicadas, aceitas, coletadas e tempo médio em horas no mês"` e `"H4 limite: doação devolvida conta apenas em publicadas e mês inválido é recusado"` em [tests/doacoes.test.js](../tests/doacoes.test.js), casts `::int`/`::float8` em [src/repositorio.js](../src/repositorio.js), `#painel-resultado` em [public/index.html](../public/index.html) e passo 7 de [docs/demo.md](demo.md). |
+| H4·CA2 | Dado um mês sem nenhuma coleta, quando a Marta consulta o resultado, então o tempo médio aparece como sem coletas no mês — não como zero, nem como erro. | atende | Teste `"H4 CA2: exibe sem coletas no mês quando não há nenhuma coleta no período"` em [tests/doacoes.test.js](../tests/doacoes.test.js) e formatação em [src/doacoes.js](../src/doacoes.js). |
+| H4·CA3 | Dado uma doação publicada em 31/10 e coletada em 01/11, quando a Marta consulta novembro, então o grupo decide em que mês ela conta — e o teste diz qual. | atende | Teste `"H4 CA3: contabiliza doação publicada em 31/10 e coletada em 01/11 no mês de publicação (outubro)"` em [tests/doacoes.test.js](../tests/doacoes.test.js) e decisão 5 em [docs/projeto.md](projeto.md). |
 
 ## Critérios que não atendem — por quê
 
-(Para cada "parcial" ou "não": o que falta, por que ficou de fora e o que seria necessário.)
+Nenhum critério da Unidade 1 nem das histórias H1 a H4 encontra-se como `parcial` ou `não atende`. O **Critério 1 da Unidade 1** (antes `parcial` por falta de alerta visual no HTML) passou a `atende` com o banner `#alerta-erro` em [public/index.html](../public/index.html), que exibe qualquer erro HTTP 400 na tela do celular e o limpa após uma ação válida.
 
-## Mudanças de critério ao longo do semestre
+## Mudanças de critério
 
-(Algum critério da Unidade 1 se mostrou errado ou impossível? Qual, e o que aprenderam com isso.)
+- **Critério 5 da Unidade 1 e métrica de impacto (H2/H4):** A concorrência no aceite passou a exigir atualização condicional atômica no PostgreSQL (`UPDATE ... WHERE id = $2 AND status = 'disponivel'`), e o objetivo de impacto da análise evoluiu de `publicação -> aceite` para o tempo real `publicação -> coleta` (`coletada_em - criada_em` em horas, atribuído ao mês de publicação em `America/Sao_Paulo`).
+- **Doações legadas em H1:** Registros anteriores à coluna `doador` recebem `DEFAULT 'Doador não informado'` em [src/db.js](../src/db.js) para preservar histórico, ficando fora de `/api/minhas-doacoes` para não vazar itens órfãos entre doadores.
 
 ## Uso de IA
 
-(O que foi gerado com IA nesta iteração, o que vocês verificaram e o que alteraram.)
+- **O que a IA fez:** Auxiliou na conversão de placeholders `$1, $2...` na Iteração 0, sugeriu casos limite de doador vazio/legado em H1, rascunhou os painéis mobile (`375px`) de coleta (H2), devolução (H3) e resultado mensal da Marta (H4), e propôs o esqueleto SQL de agregação mensal em [src/repositorio.js](../src/repositorio.js).
+- **O que verificamos e erros da IA que corrigimos:**
+  - **Vazamento de tipos do PostgreSQL e datas nos testes (H4):** Na agregação mensal, o driver `pg` devolve `COUNT(*)` e `EXTRACT(EPOCH ...)` como `string` (`bigint`/`numeric`), o que faria o JSON retornar `"3"` em vez de `3`; corrigimos **abaixo do contrato** em [src/repositorio.js](../src/repositorio.js) com casts explícitos `::int` e `::float8` e timestamps controlados (`criadaEm`/`coletadaEm`) em vez de `NOW()` fixo nos testes.
+  - **Pool compartilhado, DOM seguro e Regra de Três (H1–H3):** Unificamos um único `afterAll(encerrar)` ao fim de [tests/doacoes.test.js](../tests/doacoes.test.js), validamos H2·CA2 por inversão de regra, trocamos `innerHTML` por `textContent` em [public/index.html](../public/index.html) e extraímos `buscarEValidarTransicao` na Refatoração 2 em vez de manter uma terceira cópia manual em `src/doacoes.js`.
+
+## Limitações do produto
+
+- **Identificação sem autenticação:** Doadores, ONGs e voluntários identificam-se por nome digitado (`localStorage` no celular, sem login/senha) para eliminar atrito no piloto; por isso, quem digitar o mesmo nome acessa a mesma listagem ou consegue acionar devolução em nome daquela ONG.
+- **Expiração automática e escala:** A devolução quando uma ONG desiste já funciona manualmente em H3, mas o retorno automático em background após 2 horas sem coleta, paginação (`LIMIT`) e filtros por geolocalização ficaram fora do piloto por baixo volume local.
