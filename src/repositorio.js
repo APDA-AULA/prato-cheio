@@ -45,3 +45,12 @@ export async function aceitar(id, ong) {
   );
   return rows[0];
 }
+
+// Confirmar a coleta da doação pelo voluntário registrando o horário e devolver a linha atualizada.
+export async function confirmarColeta(id, voluntario) {
+  const { rows } = await query(
+    "UPDATE doacoes SET status = 'coletada', voluntario = $1, coletada_em = NOW() WHERE id = $2 AND status = 'aceita' RETURNING *",
+    [voluntario, id]
+  );
+  return rows[0];
+}

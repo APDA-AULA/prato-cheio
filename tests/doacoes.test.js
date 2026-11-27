@@ -259,6 +259,194 @@ describe('H1 — o doador acompanha as suas doações', () => {
   });
 });
 
+describe('H2 — o voluntário confirma a coleta', () => {
+  beforeEach(async () => {
+    await migrar();
+    await limparBanco();
+  });
+
+  it('H2 CA1: confirma a coleta de doação aceita registrando voluntário e horário', async () => {
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Sopa de Legumes',
+        quantidade: '15 porções',
+        validade: '2026-12-20'
+      });
+    expect(criacao.status).toBe(201);
+    const id = criacao.body.id;
+
+    const aceite = await request(app)
+      .post(`/api/doacoes/${id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+    expect(aceite.status).toBe(200);
+
+    const coleta = await request(app)
+      .post(`/api/doacoes/${id}/coletar`)
+      .send({ voluntario: 'Rui' });
+
+    expect(coleta.status).toBe(200);
+    expect(coleta.body.status).toBe('coletada');
+    expect(coleta.body.ong).toBe('Casa Esperança');
+    expect(coleta.body.voluntario).toBe('Rui');
+    expect(coleta.body.coletada_em).toBeTruthy();
+    expect(Number.isNaN(Date.parse(coleta.body.coletada_em))).toBe(false);
+    expect(Date.parse(coleta.body.coletada_em)).toBeGreaterThanOrEqual(
+      Date.parse(coleta.body.criada_em)
+    );
+  });
+
+  it('H2 CA2: recusa confirmar coleta de doação ainda disponível e não altera a doação', async () => {
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Pão Francês',
+        quantidade: '20 unidades',
+        validade: '2026-12-20'
+      });
+    expect(criacao.status).toBe(201);
+    const id = criacao.body.id;
+
+    const coleta = await request(app)
+      .post(`/api/doacoes/${id}/coletar`)
+      .send({ voluntario: 'Rui' });
+
+    expect(coleta.status).toBe(400);
+    expect(coleta.body.erro).toBe('Só é possível confirmar a coleta de uma doação aceita.');
+
+    const disponiveis = await request(app).get('/api/doacoes');
+    expect(disponiveis.status).toBe(200);
+    const doacao = disponiveis.body.find((item) => item.id === id);
+    expect(doacao).toMatchObject({
+      id,
+      status: 'disponivel',
+      ong: null,
+      voluntario: null,
+      coletada_em: null
+    });
+  });
+
+  it('H2 CA3: exibe a doação como coletada quando o doador consulta suas doações', async () => {
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Marmitas',
+        quantidade: '12 unidades',
+        validade: '2026-12-21'
+      });
+    expect(criacao.status).toBe(201);
+    const id = criacao.body.id;
+
+    await request(app)
+      .post(`/api/doacoes/${id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+
+    await request(app)
+      .post(`/api/doacoes/${id}/coletar`)
+      .send({ voluntario: 'Rui' });
+
+    const consulta = await request(app)
+      .get('/api/minhas-doacoes?doador=Padaria%20P%C3%A3o%20Bom');
+
+    expect(consulta.status).toBe(200);
+    expect(consulta.body).toHaveLength(1);
+    expect(consulta.body[0]).toMatchObject({
+      id,
+      doador: 'Padaria Pão Bom',
+      status: 'coletada',
+      situacao: 'coletada',
+      ong: 'Casa Esperança',
+      voluntario: 'Rui'
+    });
+    expect(consulta.body[0].coletada_em).toBeTruthy();
+  });
+
+  it('H2 limite: recusa confirmar duas vezes a mesma coleta preservando voluntário e horário originais', async () => {
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Frutas',
+        quantidade: '10 kg',
+        validade: '2026-12-22'
+      });
+    const id = criacao.body.id;
+
+    await request(app)
+      .post(`/api/doacoes/${id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+
+    const primeira = await request(app)
+      .post(`/api/doacoes/${id}/coletar`)
+      .send({ voluntario: 'Rui' });
+    expect(primeira.status).toBe(200);
+
+    const segunda = await request(app)
+      .post(`/api/doacoes/${id}/coletar`)
+      .send({ voluntario: 'Outro Voluntário' });
+    expect(segunda.status).toBe(400);
+    expect(segunda.body.erro).toBe('Doação já foi coletada.');
+
+    const consulta = await request(app)
+      .get('/api/minhas-doacoes?doador=Padaria%20P%C3%A3o%20Bom');
+    expect(consulta.status).toBe(200);
+    expect(consulta.body[0].status).toBe('coletada');
+    expect(consulta.body[0].voluntario).toBe('Rui');
+    expect(consulta.body[0].coletada_em).toBe(primeira.body.coletada_em);
+  });
+
+  it('H2 limite: recusa confirmar coleta sem informar o nome do voluntário', async () => {
+    const criacao = await request(app)
+      .post('/api/doacoes')
+      .send({
+        doador: 'Padaria Pão Bom',
+        tipo: 'Arroz e Feijão',
+        quantidade: '8 marmitas',
+        validade: '2026-12-23'
+      });
+    const id = criacao.body.id;
+
+    await request(app)
+      .post(`/api/doacoes/${id}/aceitar`)
+      .send({ ong: 'Casa Esperança' });
+
+    const semNome = await request(app)
+      .post(`/api/doacoes/${id}/coletar`)
+      .send({});
+    expect(semNome.status).toBe(400);
+    expect(semNome.body.erro).toBe('O nome do voluntário é obrigatório.');
+
+    const apenasEspacos = await request(app)
+      .post(`/api/doacoes/${id}/coletar`)
+      .send({ voluntario: '   ' });
+    expect(apenasEspacos.status).toBe(400);
+    expect(apenasEspacos.body.erro).toBe('O nome do voluntário é obrigatório.');
+
+    const consulta = await request(app)
+      .get('/api/minhas-doacoes?doador=Padaria%20P%C3%A3o%20Bom');
+    expect(consulta.status).toBe(200);
+    expect(consulta.body[0]).toMatchObject({
+      id,
+      status: 'aceita',
+      situacao: 'aceita por Casa Esperança',
+      voluntario: null,
+      coletada_em: null
+    });
+  });
+
+  it('H2 limite: recusa confirmar coleta de doação inexistente', async () => {
+    const res = await request(app)
+      .post('/api/doacoes/9999/coletar')
+      .send({ voluntario: 'Rui' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toBe('Doação não encontrada.');
+  });
+});
+
 afterAll(async () => {
   await encerrar();
 });

@@ -50,12 +50,22 @@ export async function migrar() {
       validade    TEXT NOT NULL,
       status      TEXT NOT NULL DEFAULT 'disponivel',
       ong         TEXT,
+      voluntario  TEXT,
+      coletada_em TIMESTAMPTZ,
       criada_em   TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
   await query(`
     ALTER TABLE doacoes
     ADD COLUMN IF NOT EXISTS doador TEXT NOT NULL DEFAULT 'Doador não informado'
+  `);
+  await query(`
+    ALTER TABLE doacoes
+    ADD COLUMN IF NOT EXISTS voluntario TEXT
+  `);
+  await query(`
+    ALTER TABLE doacoes
+    ADD COLUMN IF NOT EXISTS coletada_em TIMESTAMPTZ
   `);
 }
 
